@@ -1,0 +1,41 @@
+---
+title: 'Supplemental Materials: TBN'
+author: Samuel D Chamberlain^1^
+date: '`r Sys.Date()`'
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+fontsize: 12pt
+header-includes:
+- \usepackage{setspace}
+- \doublespacing
+- \usepackage{hyperref}
+link-citations: yes
+csl: global-change-biology.csl
+bibliography: library.bib
+---
+
+^1^Department of Environmental Science, Policy, and Management, University of California, Berkeley, California, USA
+
+```{r setup, include=FALSE}
+#setwd to main package directory
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>")
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+```
+
+```{r packages, message=FALSE}
+library(knitr)
+library(tidyverse)
+library(lubridate)
+library(gridExtra)
+library(scales)
+library(zoo)
+library(ggpubr)
+```
+

@@ -1,0 +1,163 @@
+---
+title: Salinity study
+author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J Szutu^1^, Joseph
+  G Verfaillie^1^, and Dennis D Baldocchi^1^
+date: '`r Sys.Date()`'
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+fontsize: 12pt
+header-includes:
+- \usepackage{setspace}
+- \doublespacing
+- \usepackage{lineno}
+- \linenumbers
+- \usepackage{hyperref}
+link-citations: yes
+csl: global-change-biology.csl
+bibliography: library.bib
+---
+
+^1^Department of Environmental Science, Policy, and Management, University of California, Berkeley, California, USA
+
+```{r setup, include=FALSE}
+#setwd to main package directory
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+options(digits=2)
+
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>")
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+```
+
+```{r packages, message=FALSE}
+library(knitr)
+library(tidyverse)
+library(lubridate)
+library(gridExtra)
+library(scales)
+library(zoo)
+library(ggpubr)
+library(caret)
+library(modelr)
+```
+
+\newpage
+
+# Abstract
+
+# Introduction
+
+# Materials and Methods
+
+# Results
+```{r load_process}
+#load and process wetland sites into half-hourly, daily, and annual sums
+source("R/peat6_processing.R") #wetland experiencing salinity rise
+source("R/peat19_processing.R") #baseline mature wetland w/o salinity rise
+```
+
+```{r fig1, fig.height = 8, fig.width = 7}
+a <- ggplot(subset(peat6_daily, year > 2012), aes(x=datetime, y=mgCH4)) +
+  geom_point()
+
+b <- ggplot(subset(peat6_daily, year > 2012), aes(x=datetime, y=gCO2)) +
+  geom_point()
+
+c <- ggplot(subset(peat6_daily, year > 2012)) +
+  geom_line(aes(x=datetime, y=gER)) +
+  geom_line(aes(x=datetime, y=gGEP))
+
+d <- ggplot(subset(peat6_daily, year > 2012), aes(x=datetime, y=Cond)) +
+  geom_line()
+
+grid.arrange(a, b, c, d, e, ncol=1)
+```
+
+```{r fig2, fig.height=7, fig.width=4}
+#Average monthly fluxes prior to salinity peak in 2016 
+MBav <- subset(peat6_monthly, year > 2012 & year < 2016) %>%
+  group_by(month) %>%
+  summarise(CH4 = mean(gCH4),
+            sdCH4 = 1.96*sd(gCH4)/sqrt(length(gCH4)),
+            NEE = mean(gNEE),
+            sdNEE = 1.96*sd(gNEE)/sqrt(length(gNEE)),
+            ER = mean(gER),
+            sdER = 1.96*sd(gER)/sqrt(length(gER)),
+            GEP = mean(gGEP),
+            sdGEP = 1.96*sd(gGEP)/sqrt(length(gGEP)),
+            n = length(gCH4))
+
+#Mean conductivity on Twitchell Island without salinity rise
+Tw_av <- rbind(peat19_monthly, peat6_monthly) %>%
+  group_by(month) %>%
+  summarise(sal = mean(mCond, na.rm=T),
+            sdsal = 1.96*sd(mCond, na.rm=T)/sqrt(length(mCond)))
+
+
+a <- ggplot() +
+  geom_ribbon(data=MBav, aes(x=month, ymin=CH4-sdCH4, ymax=CH4+sdCH4), fill="light grey") +
+  geom_line(data=MBav, aes(x=month, y=CH4)) +
+  geom_line(data=subset(peat6_monthly, year==2015), aes(x=month, y=gCH4), color="#fdae61") +
+  geom_line(data=subset(peat6_monthly, year==2016), aes(x=month, y=gCH4), color="#d7191c") +
+  geom_line(data=subset(peat6_monthly, year==2017), aes(x=month, y=gCH4), color="#2c7bb6") +
+  scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
+  ylab(expression(F[CH4]~" (g C"~m^{-2}~mo^{-1}~")")) + annotate("text", x=Inf, y=Inf, label="a ", vjust=1, hjust=1) +
+  theme_bw() + theme(axis.title.x=element_blank())
+
+b <- ggplot() +
+  geom_ribbon(data=MBav, aes(x=month, ymin=ER-sdER, ymax=ER+sdER), fill="light grey") +
+  geom_line(data=MBav, aes(x=month, y=ER)) +
+  geom_line(data=subset(peat6_monthly, year==2015), aes(x=month, y=gER), color="#fdae61") +
+  geom_line(data=subset(peat6_monthly, year==2016), aes(x=month, y=gER), color="#d7191c") +
+  geom_line(data=subset(peat6_monthly, year==2017), aes(x=month, y=gER), color="#2c7bb6") +
+  ylab(expression("ER (g C"~m^{-2}~mo^{-1}~")")) + annotate("text", x=Inf, y=Inf, label="b ", vjust=1, hjust=1) +
+  scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
+  theme_bw() + theme(axis.title.x=element_blank())
+
+c <- ggplot() +
+  geom_ribbon(data=MBav, aes(x=month, ymin=GEP-sdGEP, ymax=GEP+sdGEP), fill="light grey") +
+  geom_line(data=MBav, aes(x=month, y=GEP)) +
+  geom_line(data=subset(peat6_monthly, year==2015), aes(x=month, y=gGEP), color="#fdae61") +
+  geom_line(data=subset(peat6_monthly, year==2016), aes(x=month, y=gGEP), color="#d7191c") +
+  geom_line(data=subset(peat6_monthly, year==2017), aes(x=month, y=gGEP), color="#2c7bb6") +
+  ylab(expression("GEP (g C"~m^{-2}~mo^{-1}~")")) + annotate("text", x=Inf, y=Inf, label="c ", vjust=1, hjust=1) +
+  scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
+  theme_bw() + theme(axis.title.x=element_blank())
+
+d <- ggplot() +
+  geom_ribbon(data=Tw_av, aes(x=month, ymin=sal-sdsal, ymax=sal+sdsal), fill="light grey") +
+  geom_line(data=Tw_av, aes(x=month, y=sal)) +
+  geom_line(data=subset(peat6_monthly, year==2015), aes(x=month, y=mCond), color="#fdae61") +
+  geom_line(data=subset(peat6_monthly, year==2016), aes(x=month, y=mCond), color="#d7191c") +
+  geom_line(data=subset(peat6_monthly, year==2017), aes(x=month, y=mCond), color="#2c7bb6") +
+  ylab("Salinity")  + annotate("text", x=Inf, y=Inf, label="d ", vjust=1, hjust=1) +
+  scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
+  theme_bw()
+
+#Multiple plots aligned
+g1 <- ggplotGrob(a)
+g2 <- ggplotGrob(b)
+g3 <- ggplotGrob(c)
+g4 <- ggplotGrob(d)
+g <- rbind(g1, g2, g3, g4, size="first");
+
+grid.arrange(g)
+```
+
+```{r fig3}
+ggplot(subset(peat6_yearly, year > 2011 & year < 2018), aes(x = Cond, y = tGEP, color=factor(year))) +
+  geom_point() +
+  stat_smooth(method="lm")
+```
+
+# Discussion
+
+# Acknowledgements
+This research was supported in part by the U.S. Department of Energy’s Office of Science and its funding of Ameriflux core sites (Ameriflux contract 7079856), and the California Division of Fish and Wildlife, through a contract of the California Department of Water Resources (Award 4600011240).
+
+# References
+
