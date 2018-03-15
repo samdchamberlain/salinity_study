@@ -37,9 +37,19 @@ daily <- peat6_all %>%
             Rain = sum(PRECIP, na.rm=T),       #rain (mm)
             WTD = mean(WT, na.rm=T),           #water table (m from surface)
             Cond = mean(Cond, na.rm=T),        #conductivity (mS)
+            DOrange1 = max(DO_mid, na.rm=T) - min(DO_mid, na.rm=T),
+            DOmid = mean(DO_mid, na.rm=T),
+            DOrange2 = max(DO_deep, na.rm=T) - min(DO_deep, na.rm=T),
+            DOdiff = mean(DO_mid, na.rm=T) - mean(DO_deep, na.rm=T),
+            COrangeS = max(wCO2_open_surface_ppm, na.rm=T) - min(wCO2_open_surface_ppm, na.rm=T),
+            COrangeM = max(wCO2_open_mid_ppm, na.rm=T) - min(wCO2_open_mid_ppm, na.rm=T),
+            COrangeD = max(wCO2_open_deep_ppm, na.rm=T) - min(wCO2_open_deep_ppm, na.rm=T),
+            COdiff = mean(wCO2_open_surface_ppm, na.rm=T) - mean(wCO2_open_deep_ppm, na.rm=T),
             t_obs = length(wc_gf),      # total observations in the day
             year = round(median(year))) %>%
   filter(year > 2010 & t_obs == 48) #cut pre-wetland measures, and incomplete days at ends of time series
+
+daily[daily == -Inf] <- NaN
 
 #Time and unit conversions
 daily$datetime <- as.POSIXct(daily$dday*86400, origin="2010-01-01")

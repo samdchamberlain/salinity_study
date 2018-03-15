@@ -54,6 +54,7 @@ library(modelr)
 # Materials and Methods
 
 # Results
+## Salinity effects
 ```{r load_process}
 #load and process wetland sites into half-hourly, daily, and annual sums
 source("R/peat6_processing.R") #wetland experiencing salinity rise
@@ -74,7 +75,7 @@ c <- ggplot(subset(peat6_daily, year > 2012)) +
 d <- ggplot(subset(peat6_daily, year > 2012), aes(x=datetime, y=Cond)) +
   geom_line()
 
-grid.arrange(a, b, c, d, e, ncol=1)
+grid.arrange(a, b, c, d, ncol=1)
 ```
 
 ```{r fig2, fig.height=7, fig.width=4}
@@ -152,6 +153,35 @@ grid.arrange(g)
 ggplot(subset(peat6_yearly, year > 2011 & year < 2018), aes(x = Cond, y = tGEP, color=factor(year))) +
   geom_point() +
   stat_smooth(method="lm")
+```
+
+## Water chemistry
+
+```{r fig4}
+only16 <- subset(peat6_daily, year > 2015)
+only16$jday <- lubridate::yday(only16$datetime)
+
+only16$season <- ifelse(only16$jday %in% c(0:100) | only16$jday %in% c(300:365), "fallow", 
+                           "growing")
+
+ggplot(only16, aes(x=datetime)) +
+  geom_line(aes(y = DOrange1), color="red") +
+  geom_line(aes(y = DOdiff), color="blue")
+
+ggplot(only16, aes(x=mgCH4, y=DOrange1, color=season)) +
+  geom_point()
+
+regr <- lm(DOrange1 ~ mgCH4, data = subset(only16, season == "growing")); summary(regr)
+```
+
+```{r fig5}
+only16 <- subset(peat6_daily, year == 2016)
+
+only16$maCH4 <- only16$gCO2 - ma(only16$gCO2, 14)
+only16$maDO <- only16$DOrange1 - ma(only16$DOrange1, 14)
+
+ggplot(only16, aes(x=maDO, y=maCH4)) +
+  geom_point()
 ```
 
 # Discussion

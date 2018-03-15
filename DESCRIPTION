@@ -11,4 +11,8 @@ Suggests: testthat,
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-RoxygenNote: 6.0.1
+RoxygenNote: 6.0.1.9000
+Imports: dplyr,
+    zoo,
+    lubridate,
+    magrittr
