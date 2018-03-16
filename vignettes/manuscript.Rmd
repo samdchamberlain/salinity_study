@@ -62,17 +62,21 @@ source("R/peat19_processing.R") #baseline mature wetland w/o salinity rise
 ```
 
 ```{r fig1, fig.height = 8, fig.width = 7}
-a <- ggplot(subset(peat6_daily, year > 2012), aes(x=datetime, y=mgCH4)) +
+peat6_sub <- select(peat6_daily, -starts_with("DO"), -starts_with("CO", ignore.case = F))
+
+both_sites <- rbind(peat19_daily, peat6_sub)
+
+a <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=mgCH4, color=site)) +
   geom_point()
 
-b <- ggplot(subset(peat6_daily, year > 2012), aes(x=datetime, y=gCO2)) +
+b <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=gCO2, color=site)) +
   geom_point()
 
-c <- ggplot(subset(peat6_daily, year > 2012)) +
-  geom_line(aes(x=datetime, y=gER)) +
-  geom_line(aes(x=datetime, y=gGEP))
+c <- ggplot(subset(both_sites, year > 2013)) +
+  geom_line(aes(x=datetime, y=gER, color=site)) #+
+  #geom_line(aes(x=datetime, y=gGEP, color=site))
 
-d <- ggplot(subset(peat6_daily, year > 2012), aes(x=datetime, y=Cond)) +
+d <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=Tair, color=site)) +
   geom_line()
 
 grid.arrange(a, b, c, d, ncol=1)
@@ -153,6 +157,86 @@ grid.arrange(g)
 ggplot(subset(peat6_yearly, year > 2011 & year < 2018), aes(x = Cond, y = tGEP, color=factor(year))) +
   geom_point() +
   stat_smooth(method="lm")
+```
+
+## Models by year for comparison
+```{r test}
+#CH4sub <- peat6_all[!is.na(peat6_all$wm), ]
+
+by_year <- peat6_daily %>%
+  filter(year > 2011 & year < 2018) %>%
+  group_by(year) %>%
+  select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD) %>%
+  nest()
+
+net_model <- function(df) {
+  train(mgCH4 ~ ., data = df, method = "glmnet",
+                 trControl = trainControl(method = "cv"),
+                 preProcess = c("center", "scale", "medianImpute", "BoxCox"),
+                 tuneGrid = expand.grid(.alpha = 1, .lambda = 0.1),
+                 na.action = na.pass)
+}
+
+# hh_model <- function(df) {
+#   train(wm ~ gpp_ANNnight + wq_gf + wt_gf + TA.y + VPD + ustar + PRECIP + WT + WD,
+#         data = df,
+#         method = "glmnet",
+#         preProcess = c("center", "scale", "medianImpute", "BoxCox"),
+#         na.action = na.pass)
+# }
+
+# subset <- peat6_daily %>%
+#   ungroup() %>%
+#   select(mgCH4, gGEP, gER, mET, H, Tair, Tw, mVPD, u., Rain, WTD) %>%
+#   na.omit()
+
+# #caret approach
+# glm_reg <- train(wm ~ gpp_ANNnight + wq_gf + wt_gf + TA.y + VPD + ustar + PRECIP + WT + WD, 
+#                  data = CH4sub, method = "glmnet",
+#                  trControl = trainControl(method = "cv"),
+#                  preProcess = c("center", "scale", "medianImpute"),
+#                  #tuneGrid = expand.grid(.alpha = 1, .lambda = c(0, 0.001, 0.1, 1, 5, 10, 20, 50)),
+#                  na.action = na.pass)
+
+by_year <- by_year %>%
+  mutate(model = map(data, net_model),
+         Imp = map(model, varImp))
+
+impo_list <- by_year$Imp
+
+a <- impo_list[[1]]$importance
+a$year <- 2012
+a$vars <- rownames(a)
+
+b <- impo_list[[2]]$importance
+b$year <- 2013
+b$vars <- rownames(b)
+
+c <- impo_list[[3]]$importance
+c$year <- 2014
+c$vars <- rownames(c)
+
+d <- impo_list[[4]]$importance
+d$year <- 2015
+d$vars <- rownames(d)
+
+e <- impo_list[[5]]$importance
+e$year <- 2016
+e$vars <- rownames(e)
+
+f <- impo_list[[6]]$importance
+f$year <- 2017
+f$vars <- rownames(f)
+
+all_now <- do.call("rbind", list(a, b, c, d, e, f))
+
+ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
+  #stat_smooth(se=F) +
+  geom_point(size = 2) +
+  geom_line()
+
+# ggplot(all_now, aes(x = year, y = vars)) +
+#   geom_tile(aes(fill = Overall))
 ```
 
 ## Water chemistry
