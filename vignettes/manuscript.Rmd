@@ -43,6 +43,8 @@ library(zoo)
 library(ggpubr)
 library(caret)
 library(modelr)
+library(forecast)
+library(entropy)
 ```
 
 \newpage
@@ -160,6 +162,40 @@ ggplot(subset(peat6_yearly, year > 2011 & year < 2018), aes(x = Cond, y = tGEP, 
 ```
 
 ## Models by year for comparison
+```{r anomaly_filter}
+anom_filter <- function(var, window = 7) {
+  var - ma(var, order = window)
+}
+
+peat6_daily$CH4a <- anom_filter(peat6_daily$mgCH4)
+
+ggplot(peat6_daily) +
+  geom_line(aes(x = datetime, y = CH4a)) +
+  geom_line(aes(x = datetime, y = mgCH4))
+
+test <- peat6_daily %>%
+  ungroup() %>%
+  select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD) %>%
+  map_df(anom_filter)
+  
+cor(test, method = "spearman", use = "complete.obs")
+
+```
+
+```{r entropy_analysis}
+mutual_info <- function(x, y, bins = 10) {
+  
+  clip_set <- na.omit(data.frame(x, y))
+  
+  y2d <- discretize2d(clip_set$x, clip_set$y, numBins1 = bins, numBins2 = bins)
+  y_entropy <- entropy(discretize(na.omit(y), numBins = bins))
+  
+  mi.empirical(y2d)/y_entropy
+}
+
+mutual_info(peat6_daily$Tw, peat6_daily$mgCH4)
+```
+
 ```{r test}
 #CH4sub <- peat6_all[!is.na(peat6_all$wm), ]
 
@@ -238,6 +274,9 @@ ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
 # ggplot(all_now, aes(x = year, y = vars)) +
 #   geom_tile(aes(fill = Overall))
 ```
+
+## Information theory approach
+
 
 ## Water chemistry
 
