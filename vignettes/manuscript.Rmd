@@ -163,15 +163,9 @@ ggplot(subset(peat6_yearly, year > 2011 & year < 2018), aes(x = Cond, y = tGEP, 
 
 ## Models by year for comparison
 ```{r anomaly_filter}
-anom_filter <- function(var, window = 7) {
+anom_filter <- function(var, window = 48*7) {
   var - ma(var, order = window)
 }
-
-peat6_daily$CH4a <- anom_filter(peat6_daily$mgCH4)
-
-ggplot(peat6_daily) +
-  geom_line(aes(x = datetime, y = CH4a)) +
-  geom_line(aes(x = datetime, y = mgCH4))
 
 test <- peat6_daily %>%
   ungroup() %>%
@@ -180,6 +174,19 @@ test <- peat6_daily %>%
   
 cor(test, method = "spearman", use = "complete.obs")
 
+```
+
+```{r pca}
+subset <- peat6_daily %>%
+  ungroup() %>%
+  select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD, Ts, Tw, PA, gER, Cond)
+
+pca_test <- preProcess(subset, method = c("medianImpute"))
+out_sub <- predict(pca_test, subset)
+
+test <- prcomp(out_sub, scale. = T)
+
+biplot(test)
 ```
 
 ```{r entropy_analysis}
@@ -194,6 +201,92 @@ mutual_info <- function(x, y, bins = 10) {
 }
 
 mutual_info(peat6_daily$Tw, peat6_daily$mgCH4)
+
+lag_mi <- vector("double", lags)
+for (i in 1:lags) {
+  x_lag <- dplyr::lag(test$Tair, n = i)
+  lag_mi[[i]] <- mutual_info(x_lag, peat6_daily$mgCH4, bins = 10)
+}
+
+
+#calculate at multiple lags of x
+lag_mi <- function(x, y, lags, bins = 10) {
+  
+  lag_mi <- vector("double", lags) #store lagged MI values
+  
+  for (i in 1:lags) {
+    x_lag <- dplyr::lag(x, n = i)
+    lag_mi[[i]] <- mutual_info(x_lag, y, bins)
+  }
+  
+  plot(lag_mi, xlab = "Time lag", ylab = "MI (relative)") 
+}
+
+mutual_info(peat6_all$TA.x, peat6_all$wm, bins = 10)
+
+# test multiple binning strategies
+bin_v = seq(4, 22, by = 2)
+par(mfrow=c(2, 5))
+
+for (i in bin_v) {
+  lag_mi(peat6_all$ustar, peat6_all$wm, lags = 48, bins = i)
+}
+
+#create a growing month stamp
+peat6_all$month_round <- floor(peat6_all$decday/31)
+
+#create data list by month
+by_month <- peat6_all %>%
+  filter(year > 2011 & year < 2018) %>%
+  group_by(month_round) %>%
+  nest()
+
+mi_timeseries <- function(x, y, data_list, bins = 10) {
+
+  mi_series <- vector("double", nrow(data_list)) #vector to store mutual information
+  
+  #iterate through indexed datasets and calculate relative MI
+  for (i in 1:nrow(data_list)) {
+    current_df <- data_list$data[[i]] #extract current dataframe
+    x_var <- eval(substitute(x), current_df)
+    y_var <- eval(substitute(y), current_df)
+
+    mi_series[[i]] <- mutual_info(x_var, y_var, bins)
+  }
+  mi_series
+}
+
+GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm_gf, data_list = by_month)
+
+
+#plot that needs to be dealt with later
+clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
+clipped_monthly$T_mi <- t_monthly
+clipped_monthly$GPP_mi <- mi_monthly
+
+a <- ggplot(clipped_monthly) +
+  geom_point(aes(x = datetime, y = ma(T_mi, 3)), color = "red") +
+  geom_line(aes(x = datetime, y = ma(T_mi, 3)), color = "red") +
+  geom_point(aes(x = datetime, y = ma(GPP_mi, 3)), color = "dark green") +
+  geom_line(aes(x = datetime, y = ma(GPP_mi, 3)), color = "dark green") +
+  ylab("Mutual information") + theme_bw() + xlab("")
+
+b <- ggplot(clipped_monthly, aes(x=datetime, y=gCH4)) +
+  geom_line() + theme_bw() + xlab("") +
+  ylab("CH4 flux (g C)")
+
+c <- ggplot(clipped_monthly, aes(x=datetime, y=gGEP)) +
+  geom_line(color = "dark green") + geom_point(color = "dark green") +
+  theme_bw() + xlab("") +
+  ylab("GEP flux (g C)")
+
+d <- ggplot(clipped_monthly, aes(x=datetime, y=mCond)) +
+  geom_line(color = "blue") +
+  ylab("Conductivity (mS)") + theme_bw()
+  
+  
+grid.arrange(a, b, c, d, ncol=1)
+
 ```
 
 ```{r test}

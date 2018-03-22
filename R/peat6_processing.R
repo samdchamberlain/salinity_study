@@ -69,6 +69,7 @@ monthly <- daily %>%
             mGEP = mean(gGEP),
             mCond = mean(Cond, na.rm=T),
             #mSal = mean(Sal, na.rm=T),
+            datetime = mean(datetime),
             days = sum(!is.na(mgCH4))) %>%
   filter(days > 27) # only complete months
 
