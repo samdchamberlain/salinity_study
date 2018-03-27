@@ -40,7 +40,7 @@ daily <- peat19_all %>%
             Cond = mean(conductivity, na.rm=T), #conductivity (mS)
             t_obs = length(wc_gf),      # total observations in the day
             year = round(median(year))) %>%
-  filter(t_obs == 48 & year > 2013)  #remove incomplete days at either end of time series and year with water table drop issues
+  filter(t_obs == 48 & year > 2012)  #remove incomplete days at either end of time series and year with water table drop issues
 
 #Time and unit conversions
 daily$datetime <- as.POSIXct(daily$dday*86400, origin="2012-01-01")
@@ -60,8 +60,12 @@ monthly <- daily %>%
             mGEP = mean(gGEP),
             mCond = mean(Cond, na.rm=T),
             #mSal = mean(Sal, na.rm=T),
-            days = sum(!is.na(mgCH4))) %>%
-  filter(days > 27) # only complete months
+            datetime = mean(datetime),
+            days = sum(!is.na(mgCH4)),
+            CH4_obs = sum(m_obs),
+            total_obs = sum(t_obs)) %>%
+  filter(days > 27)  %>% # only complete months
+  mutate(frac_CH4obs = CH4_obs/total_obs)
 
 # convert to monthly sums
 monthly$gCH4 <- monthly$mCH4*monthly$days/1000 #g C m-2 mnth-1

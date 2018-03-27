@@ -62,7 +62,7 @@ corr_timeseries <- function(x, y, data_list, method = "pearson") {
 }
 
 #calculate upper confidence bound for statistical significance
-mi_confidence <- function(x, y, runs = 1000, cutoff = 0.975) {
+mi_confidence <- function(x, y, runs = 1000) {
 
   mc_out <- rep(NA, runs) #vector for statistic output
 
@@ -71,7 +71,7 @@ mi_confidence <- function(x, y, runs = 1000, cutoff = 0.975) {
     rand_x <- sample(x, length(x), replace = F) #randomly shuffle x variable
     mc_out[i] <- mutual_info(rand_x, y) #calculate MI between shuffled x and y
   }
-  quantile(mc_out, c(cutoff))[[1]]
+  mean(mc_out)
 }
 
 conf_series <- function(x, y, data_list, runs = 1000) {

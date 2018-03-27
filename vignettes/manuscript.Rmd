@@ -1,22 +1,20 @@
 ---
-title: Salinity study
-author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J Szutu^1^, Joseph
-  G Verfaillie^1^, and Dennis D Baldocchi^1^
+title: "Salinity study"
+author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J Szutu^1^,
+  Joseph G Verfaillie^1^, and Dennis D Baldocchi^1^
 date: '`r Sys.Date()`'
 output:
-  word_document: default
-  pdf_document: default
   html_document: default
-fontsize: 12pt
+  pdf_document: default
+  word_document: default
+link-citations: yes
 header-includes:
 - \usepackage{setspace}
 - \doublespacing
 - \usepackage{lineno}
 - \linenumbers
 - \usepackage{hyperref}
-link-citations: yes
-csl: global-change-biology.csl
-bibliography: library.bib
+fontsize: 12pt
 ---
 
 ^1^Department of Environmental Science, Policy, and Management, University of California, Berkeley, California, USA
@@ -47,15 +45,15 @@ library(forecast)
 library(entropy)
 ```
 
-\newpage
+<!-- \newpage -->
 
-# Abstract
+<!-- # Abstract -->
 
-# Introduction
+<!-- # Introduction -->
 
-# Materials and Methods
+<!-- # Materials and Methods -->
 
-# Results
+<!-- # Results -->
 ## Salinity effects
 ```{r load_process}
 #load and process wetland sites into half-hourly, daily, and annual sums
@@ -69,10 +67,10 @@ peat6_sub <- select(peat6_daily, -starts_with("DO"), -starts_with("CO", ignore.c
 both_sites <- rbind(peat19_daily, peat6_sub)
 
 a <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=mgCH4, color=site)) +
-  geom_point()
+  geom_point(size = 0.5)
 
 b <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=gCO2, color=site)) +
-  geom_point()
+  geom_point(size = 0.5)
 
 c <- ggplot(subset(both_sites, year > 2013)) +
   geom_line(aes(x=datetime, y=gER, color=site)) #+
@@ -155,14 +153,8 @@ g <- rbind(g1, g2, g3, g4, size="first");
 grid.arrange(g)
 ```
 
-```{r fig3}
-ggplot(subset(peat6_yearly, year > 2011 & year < 2018), aes(x = Cond, y = tGEP, color=factor(year))) +
-  geom_point() +
-  stat_smooth(method="lm")
-```
-
 ## Models by year for comparison
-```{r anomaly_filter}
+```{r anomaly_filter, echo = F, message = F}
 anom_filter <- function(var, window = 48*7) {
   var - ma(var, order = window)
 }
@@ -172,11 +164,11 @@ test <- peat6_daily %>%
   select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD) %>%
   map_df(anom_filter)
   
-cor(test, method = "spearman", use = "complete.obs")
+#cor(test, method = "spearman", use = "complete.obs")
 
 ```
 
-```{r pca}
+```{r pca, echo = F}
 subset <- peat6_daily %>%
   ungroup() %>%
   select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD, Ts, Tw, PA, gER, Cond)
@@ -189,7 +181,7 @@ test <- prcomp(out_sub, scale. = T)
 biplot(test)
 ```
 
-```{r entropy_analysis}
+```{r entropy_analysis_peat, fig.width = 7, fig.height= 8}
 source("R/MI_functions.R")
 
 # # test multiple binning strategies
@@ -201,84 +193,88 @@ source("R/MI_functions.R")
 #   plot(a)
 # }
 
-wm_rs <- (peat6_all$wm - mean(peat6_all$wm, na.rm = T))/sd(peat6_all$wm, na.rm = T)
-wq_rs <- (peat6_all$wq - mean(peat6_all$wq, na.rm = T))/sd(peat6_all$wq, na.rm = T)
-
-
-mutual_info(wm_rs, wq_rs)
-
 #create a growing month stamp
-peat6_all$month_round <- floor(peat6_all$decday/31)
+peat6_all$month <- month(peat6_all$datetime)
+peat6_all$m_yr <- paste(peat6_all$year, peat6_all$month, sep = "")
+
+#shuffle data for comparison w/ monthly gap magnitude retained
+peat6_all <- peat6_all %>%
+  group_by(month) %>%
+  mutate(H_shuf = sample(TA.x, length(TA.x), replace = F),
+         wm_shuf = sample(wm, length(wm), replace = F))
 
 #create data list by month
 by_month <- peat6_all %>%
   filter(year > 2011 & year < 2018) %>%
-  group_by(month_round) %>%
+  group_by(m_yr) %>%
   nest()
 
 #plot that needs to be dealt with later
 clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
 clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month)
-clipped_monthly$ET_CH4_mi <- mi_timeseries(wq_gf, wm, data_list = by_month)
+clipped_monthly$ET_CH4_mi <- mi_timeseries(H_shuf, wm_shuf, data_list = by_month)
 clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
 
-#create significance thresholds across entire measurement period
-rand_ch4 <- sample(peat6_all$wm, length(peat6_all$wm), replace = F)
-rand_Tair <- sample(peat6_all$TA.x, length(peat6_all$TA.x), replace = F)
-rand_GPP <- sample(peat6_all$gpp_ANNnight, length(peat6_all$gpp_ANNnight), replace = F)
-
-mutual_info(rand_Tair, rand_ch4)
-mutual_info(peat6_all$TA.x, peat6_all$wm)
-
-mutual_info(rand_GPP, rand_ch4)
-mutual_info(peat6_all$gpp_ANNnight, peat6_all$wm)
-
-sig_gpp <- mi_confidence(check$gpp_ANNnight, check$wm, runs = 1000)
-sig_Tair <- mi_confidence(peat6_all$TA.x, peat6_all$wm, runs = 1000)
-
-peat6_all$month <- month(peat6_all$datetime)
-check <- subset(peat6_all, year == 2012 & month == 7)
-
-sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000)
-sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000)
-
-# #plot that needs to be dealt with later
-# clipped_monthly$GPP_CH4_c <- corr_timeseries(gpp_ANNnight*-1, wm, data_list = by_month, method = "spearman")
-# clipped_monthly$ET_CH4_c <- corr_timeseries(wq_gf, wm, data_list = by_month, method = "spearman")
-# clipped_monthly$Tair_CH4_c <- corr_timeseries(TA.x, wm, data_list = by_month, method = "spearman")
-
-# # only look at MI with at least 500 observations
-# clipped_monthly$GPP_CH4_mi <- ifelse(clipped_monthly$CH4_obs > 400, clipped_monthly$GPP_CH4_mi, NA)
-# clipped_monthly$ET_CH4_mi <- ifelse(clipped_monthly$CH4_obs > 400, clipped_monthly$ET_CH4_mi, NA)
-# clipped_monthly$Tair_CH4_mi <- ifelse(clipped_monthly$CH4_obs > 400, clipped_monthly$Tair_CH4_mi, NA)
+# # Monte Carlo significance thresholds (dont run everytime as they take a while)
+# #sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000)
+# # mean sig_gpp across all months: 0.02311099
+# 
+# #sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000)
+# # mean sig_Tair across all months: 0.03119986
+#
+# #sig_H <- conf_series(H_gf, wm, data_list = by_month, runs = 100)
+# # mean sig_Tair across all months: 0.03119986
 
 a <- ggplot(clipped_monthly) +
-  geom_hline(yintercept = mean(sig_gpp), size = 0.5, color = "dark green", linetype = "dashed") +
-  geom_hline(yintercept = mean(sig_Tair), size = 0.5, color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 0.02311099*2.36, size = 0.5, color = "dark green", linetype = "dashed") +
+  geom_hline(yintercept = 0.03119986*2.36, size = 0.5, color = "red", linetype = "dashed") +
+  #geom_hline(yintercept = mean(sig_H)*2.36, size = 0.5, color = "blue", linetype = "dashed") +
   geom_point(aes(x = datetime, y = Tair_CH4_mi), color = "red", alpha = 0.5) +
-  geom_line(aes(x = datetime, y = ma(Tair_CH4_mi, 2)), color = "red", size = 1) +
+  geom_line(aes(x = datetime, y = ma(Tair_CH4_mi, 3)), color = "red", size = 1) +
   geom_point(aes(x = datetime, y = GPP_CH4_mi), color = "dark green", alpha = 0.5) +
-  geom_line(aes(x = datetime, y = ma(GPP_CH4_mi, 2)), color = "dark green", size = 1) +
+  geom_line(aes(x = datetime, y = ma(GPP_CH4_mi, 3)), color = "dark green", size = 1) +
+  geom_point(aes(x = datetime, y = ET_CH4_mi), color = "blue", alpha = 0.5) +
+  geom_line(aes(x = datetime, y = ma(ET_CH4_mi, 3)), color = "blue", size = 1) +
   ylab("Mutual information") + theme_bw() + xlab("")
 
-# b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=datetime, y=mgCH4)) +
-#   geom_point(size = 0.5) + theme_bw() + xlab("") +
-#   ylab("CH4 flux (g C)")
-# 
-# c <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=datetime, y=gCO2)) +
-#   geom_point(color = "dark green", size = 0.5) +
-#   theme_bw() + xlab("") +
-#   ylab("GEP flux (g C)")
-
-d <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=datetime, y=Cond)) +
+b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=datetime, y=Cond)) +
   geom_line(color = "blue") +
   ylab("Conductivity (mS)") + theme_bw()
   
-grid.arrange(a, d, ncol=1)
-
+grid.arrange(a, b, ncol=1)
 ```
 
-```{r test}
+```{r bias_by_samples, fig.height= 5, fig.width=6}
+#use monthly from above and compare to two month chunks
+
+# create a bimonthly grouping
+peat6_all$bimonth <- paste(peat6_all$year, floor((peat6_all$month+1)/2), sep="")
+
+by_bimonth <- peat6_all %>%
+  filter(year > 2011 & year < 2018) %>%
+  group_by(bimonth) %>%
+  nest()
+
+#reshuffle by gap magnitude preserved
+peat6_all <- peat6_all %>%
+  group_by(bimonth) %>%
+  mutate(H_shuf = sample(TA.x, length(TA.x), replace = F),
+         wm_shuf = sample(wm, length(wm), replace = F))
+
+#calculate bimonthly MI
+clipped_bimonthly <- subset(peat6_monthly, year > 2011 & year < 2018)
+clipped_bimonthly$bimonth <- paste(clipped_bimonthly$year, floor((clipped_bimonthly$month+1)/2), sep="")
+clipped_bimonthly <- aggregate(clipped_bimonthly, by=list(clipped_bimonthly$bimonth), FUN=mean)
+
+clipped_bimonthly$ET_CH4_mi <- mi_timeseries(H_shuf, wm_shuf, data_list = by_bimonth)
+
+ggplot() +
+  geom_point(data = clipped_monthly, aes(x = CH4_obs, y = ET_CH4_mi)) +
+  geom_point(data = clipped_bimonthly, aes(x = CH4_obs, y = ET_CH4_mi), color = "red") +
+  xlab("Number of flux obs.") + ylab("MI (reshuffled data)")
+```
+
+```{r test, echo = F}
 #CH4sub <- peat6_all[!is.na(peat6_all$wm), ]
 
 by_year <- peat6_daily %>%
@@ -348,48 +344,38 @@ f$vars <- rownames(f)
 
 all_now <- do.call("rbind", list(a, b, c, d, e, f))
 
-ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
-  #stat_smooth(se=F) +
-  geom_point(size = 2) +
-  geom_line()
+# ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
+#   #stat_smooth(se=F) +
+#   geom_point(size = 2) +
+#   geom_line()
 
 # ggplot(all_now, aes(x = year, y = vars)) +
 #   geom_tile(aes(fill = Overall))
 ```
 
-## Information theory approach
+<!-- ## Information theory approach -->
 
 
-## Water chemistry
+<!-- ## Water chemistry -->
 
-```{r fig4}
-only16 <- subset(peat6_daily, year > 2015)
-only16$jday <- lubridate::yday(only16$datetime)
+<!-- ```{r fig4, echo = F} -->
+<!-- only16 <- subset(peat6_daily, year > 2015) -->
+<!-- only16$jday <- lubridate::yday(only16$datetime) -->
 
-only16$season <- ifelse(only16$jday %in% c(0:100) | only16$jday %in% c(300:365), "fallow", 
-                           "growing")
+<!-- only16$season <- ifelse(only16$jday %in% c(0:100) | only16$jday %in% c(300:365), "fallow",  -->
+<!--                            "growing") -->
 
-ggplot(only16, aes(x=datetime)) +
-  geom_line(aes(y = DOrange1), color="red") +
-  geom_line(aes(y = DOdiff), color="blue")
+<!-- # ggplot(only16, aes(x=datetime)) + -->
+<!-- #   geom_line(aes(y = DOrange1), color="red") + -->
+<!-- #   geom_line(aes(y = DOdiff), color="blue") -->
+<!-- #  -->
+<!-- # ggplot(only16, aes(x=mgCH4, y=DOrange1, color=season)) + -->
+<!-- #   geom_point() -->
 
-ggplot(only16, aes(x=mgCH4, y=DOrange1, color=season)) +
-  geom_point()
+<!-- regr <- lm(DOrange1 ~ mgCH4, data = subset(only16, season == "growing")); summary(regr) -->
+<!-- ``` -->
 
-regr <- lm(DOrange1 ~ mgCH4, data = subset(only16, season == "growing")); summary(regr)
-```
-
-```{r fig5}
-only16 <- subset(peat6_daily, year == 2016)
-
-only16$maCH4 <- only16$gCO2 - ma(only16$gCO2, 14)
-only16$maDO <- only16$DOrange1 - ma(only16$DOrange1, 14)
-
-ggplot(only16, aes(x=maDO, y=maCH4)) +
-  geom_point()
-```
-
-# Discussion
+<!-- # Discussion -->
 
 # Acknowledgements
 This research was supported in part by the U.S. Department of Energy’s Office of Science and its funding of Ameriflux core sites (Ameriflux contract 7079856), and the California Division of Fish and Wildlife, through a contract of the California Department of Water Resources (Award 4600011240).
