@@ -82,7 +82,7 @@ d <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=Tair, color=site)
 grid.arrange(a, b, c, d, ncol=1)
 ```
 
-```{r fig2, fig.height=7, fig.width=4}
+```{r fig2, fig.height=7, fig.width=3.5}
 #Average monthly fluxes prior to salinity peak in 2016 
 MBav <- subset(peat6_monthly, year > 2012 & year < 2016) %>%
   group_by(month) %>%
@@ -99,74 +99,65 @@ MBav <- subset(peat6_monthly, year > 2012 & year < 2016) %>%
 #Mean conductivity on Twitchell Island without salinity rise
 Tw_av <- rbind(peat19_monthly, peat6_monthly) %>%
   group_by(month) %>%
-  summarise(sal = mean(mCond, na.rm=T),
-            sdsal = 1.96*sd(mCond, na.rm=T)/sqrt(length(mCond)))
+  summarise(cond = mean(mCond, na.rm=T),
+            sd.cond = 1.96*sd(mCond, na.rm=T)/sqrt(length(mCond)))
 
 
+# plot theme
+time_series <- theme_bw() +
+  theme(panel.grid.minor=element_blank(), panel.grid.major.x = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_text(size=9))
+
+# four panels
 a <- ggplot() +
   geom_ribbon(data=MBav, aes(x=month, ymin=CH4-sdCH4, ymax=CH4+sdCH4), fill="light grey") +
   geom_line(data=MBav, aes(x=month, y=CH4)) +
-  geom_line(data=subset(peat6_monthly, year==2015), aes(x=month, y=gCH4), color="#fdae61") +
-  geom_line(data=subset(peat6_monthly, year==2016), aes(x=month, y=gCH4), color="#d7191c") +
-  geom_line(data=subset(peat6_monthly, year==2017), aes(x=month, y=gCH4), color="#2c7bb6") +
+  geom_line(data=subset(peat6_monthly, year > 2014), aes(x=month, y=gCH4, color=factor(year))) +
   scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
-  ylab(expression(F[CH4]~" (g C"~m^{-2}~mo^{-1}~")")) + annotate("text", x=Inf, y=Inf, label="a ", vjust=1, hjust=1) +
-  theme_bw() + theme(axis.title.x=element_blank())
+  ylab(expression(F[CH4]~" (g C"~m^{-2}~mo^{-1}~")")) + 
+  annotate("text", x=Inf, y=Inf, label="a ", vjust=1, hjust=1, fontface = "bold") +
+  time_series + 
+  theme(legend.title=element_blank(), legend.margin = margin(0, 0, 0, 0),
+        legend.text = element_text(size=8), legend.position=c(.15, .75),
+        legend.background = element_rect(fill = "transparent"))
 
 b <- ggplot() +
   geom_ribbon(data=MBav, aes(x=month, ymin=ER-sdER, ymax=ER+sdER), fill="light grey") +
   geom_line(data=MBav, aes(x=month, y=ER)) +
-  geom_line(data=subset(peat6_monthly, year==2015), aes(x=month, y=gER), color="#fdae61") +
-  geom_line(data=subset(peat6_monthly, year==2016), aes(x=month, y=gER), color="#d7191c") +
-  geom_line(data=subset(peat6_monthly, year==2017), aes(x=month, y=gER), color="#2c7bb6") +
-  ylab(expression("ER (g C"~m^{-2}~mo^{-1}~")")) + annotate("text", x=Inf, y=Inf, label="b ", vjust=1, hjust=1) +
+  geom_line(data=subset(peat6_monthly, year > 2014), aes(x=month, y=gER, color=factor(year))) +
+  ylab(expression("ER (g C"~m^{-2}~mo^{-1}~")")) + 
+  annotate("text", x=Inf, y=Inf, label="b ", vjust=1, hjust=1,fontface = "bold") +
   scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
-  theme_bw() + theme(axis.title.x=element_blank())
+  time_series + theme(legend.position = "none")
 
 c <- ggplot() +
   geom_ribbon(data=MBav, aes(x=month, ymin=GEP-sdGEP, ymax=GEP+sdGEP), fill="light grey") +
   geom_line(data=MBav, aes(x=month, y=GEP)) +
-  geom_line(data=subset(peat6_monthly, year==2015), aes(x=month, y=gGEP), color="#fdae61") +
-  geom_line(data=subset(peat6_monthly, year==2016), aes(x=month, y=gGEP), color="#d7191c") +
-  geom_line(data=subset(peat6_monthly, year==2017), aes(x=month, y=gGEP), color="#2c7bb6") +
-  ylab(expression("GEP (g C"~m^{-2}~mo^{-1}~")")) + annotate("text", x=Inf, y=Inf, label="c ", vjust=1, hjust=1) +
+  geom_line(data=subset(peat6_monthly, year > 2014), aes(x=month, y=gGEP, color=factor(year))) +
+  ylab(expression("GEP (g C"~m^{-2}~mo^{-1}~")")) + 
+  annotate("text", x=Inf, y=Inf, label="c ", vjust=1, hjust=1, fontface = "bold") +
   scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
-  theme_bw() + theme(axis.title.x=element_blank())
+  time_series + theme(legend.position = "none")
 
 d <- ggplot() +
-  geom_ribbon(data=Tw_av, aes(x=month, ymin=sal-sdsal, ymax=sal+sdsal), fill="light grey") +
-  geom_line(data=Tw_av, aes(x=month, y=sal)) +
-  geom_line(data=subset(peat6_monthly, year==2015), aes(x=month, y=mCond), color="#fdae61") +
-  geom_line(data=subset(peat6_monthly, year==2016), aes(x=month, y=mCond), color="#d7191c") +
-  geom_line(data=subset(peat6_monthly, year==2017), aes(x=month, y=mCond), color="#2c7bb6") +
-  ylab("Salinity")  + annotate("text", x=Inf, y=Inf, label="d ", vjust=1, hjust=1) +
+  geom_ribbon(data=Tw_av, aes(x=month, ymin=cond-sd.cond, ymax=cond+sd.cond), fill="light grey") +
+  geom_line(data=Tw_av, aes(x=month, y=cond)) +
+  geom_line(data=subset(peat6_monthly, year > 2014), aes(x=month, y=mCond, color=factor(year))) +
+  ylab("Conductivity (mS)")  + 
+  annotate("text", x=Inf, y=Inf, label="d ", vjust=1, hjust=1, fontface = "bold") +
   scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
-  theme_bw()
+  time_series + theme(legend.position = "none")
 
 #Multiple plots aligned
 g1 <- ggplotGrob(a)
 g2 <- ggplotGrob(b)
 g3 <- ggplotGrob(c)
 g4 <- ggplotGrob(d)
-g <- rbind(g1, g2, g3, g4, size="first");
 
-grid.arrange(g)
+grid.arrange(g1, g2, g3, g4, ncol = 1)
 ```
 
-## Models by year for comparison
-```{r anomaly_filter, echo = F, message = F}
-anom_filter <- function(var, window = 48*7) {
-  var - ma(var, order = window)
-}
-
-test <- peat6_daily %>%
-  ungroup() %>%
-  select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD) %>%
-  map_df(anom_filter)
-  
-#cor(test, method = "spearman", use = "complete.obs")
-
-```
+## Connectivity across time
 
 ```{r pca, echo = F}
 subset <- peat6_daily %>%
@@ -197,6 +188,11 @@ source("R/MI_functions.R")
 peat6_all$month <- month(peat6_all$datetime)
 peat6_all$m_yr <- paste(peat6_all$year, peat6_all$month, sep = "")
 
+# #try a differencing approach
+# peat6_all$wm_diff <- c(NA, diff(peat6_all$wm))
+# peat6_all$TA_diff <- c(NA, diff(peat6_all$TA.x))
+# peat6_all$GPP_diff <- c(NA, diff(peat6_all$gpp_ANNnight))
+
 #shuffle data for comparison w/ monthly gap magnitude retained
 peat6_all <- peat6_all %>%
   group_by(month) %>%
@@ -225,27 +221,33 @@ clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
 # #sig_H <- conf_series(H_gf, wm, data_list = by_month, runs = 100)
 # # mean sig_Tair across all months: 0.03119986
 
-a <- ggplot(clipped_monthly) +
+# clipped_monthly$Tair_ma <- ifelse(clipped_monthly$CH4_obs < 500, NA, clipped_monthly$Tair_CH4_mi)
+# clipped_monthly$GPP_ma <- ifelse(clipped_monthly$CH4_obs < 500, NA, clipped_monthly$GPP_CH4_mi)
+# 
+# clipped_monthly$Tair_ma <- na.ma(ma(clipped_monthly$Tair_ma, 3))
+# clipped_monthly$GPP_ma <- na.ma(ma(clipped_monthly$GPP_ma, 3))
+
+c <- ggplot(clipped_monthly) +
   geom_hline(yintercept = 0.02311099*2.36, size = 0.5, color = "dark green", linetype = "dashed") +
   geom_hline(yintercept = 0.03119986*2.36, size = 0.5, color = "red", linetype = "dashed") +
-  #geom_hline(yintercept = mean(sig_H)*2.36, size = 0.5, color = "blue", linetype = "dashed") +
   geom_point(aes(x = datetime, y = Tair_CH4_mi), color = "red", alpha = 0.5) +
   geom_line(aes(x = datetime, y = ma(Tair_CH4_mi, 3)), color = "red", size = 1) +
   geom_point(aes(x = datetime, y = GPP_CH4_mi), color = "dark green", alpha = 0.5) +
   geom_line(aes(x = datetime, y = ma(GPP_CH4_mi, 3)), color = "dark green", size = 1) +
-  geom_point(aes(x = datetime, y = ET_CH4_mi), color = "blue", alpha = 0.5) +
-  geom_line(aes(x = datetime, y = ma(ET_CH4_mi, 3)), color = "blue", size = 1) +
+  #geom_point(aes(x = datetime, y = ET_CH4_mi), color = "blue", alpha = 0.5) +
+  #geom_line(aes(x = datetime, y = ma(ET_CH4_mi, 3)), color = "blue", size = 1) +
   ylab("Mutual information") + theme_bw() + xlab("")
 
 b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=datetime, y=Cond)) +
   geom_line(color = "blue") +
   ylab("Conductivity (mS)") + theme_bw()
   
-grid.arrange(a, b, ncol=1)
+grid.arrange(c, b, ncol=1)
 ```
 
 ```{r bias_by_samples, fig.height= 5, fig.width=6}
 #use monthly from above and compare to two month chunks
+# probably move to supplement
 
 # create a bimonthly grouping
 peat6_all$bimonth <- paste(peat6_all$year, floor((peat6_all$month+1)/2), sep="")
@@ -344,13 +346,10 @@ f$vars <- rownames(f)
 
 all_now <- do.call("rbind", list(a, b, c, d, e, f))
 
-# ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
-#   #stat_smooth(se=F) +
-#   geom_point(size = 2) +
-#   geom_line()
-
-# ggplot(all_now, aes(x = year, y = vars)) +
-#   geom_tile(aes(fill = Overall))
+ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
+  #stat_smooth(se=F) +
+  geom_point(size = 2) +
+  geom_line()
 ```
 
 <!-- ## Information theory approach -->
