@@ -4,7 +4,7 @@
 #' @import entropy
 #' @importFrom dplyr lag
 
-transfer_entropy <- function(x, y, xlag, ylag, bins = 10, normalize = TRUE) {
+transfer_entropy <- function(x, y, xlag, ylag = 1, bins = 10, normalize = TRUE) {
   
   x_lag <- dplyr::lag(x, n = xlag)
   y_lag <- dplyr::lag(y, n = ylag)
@@ -27,31 +27,55 @@ transfer_entropy <- function(x, y, xlag, ylag, bins = 10, normalize = TRUE) {
   return(Tr)
 }
 
+#three-way joint distributions for transfer entropy calculation
+discretize3d = function( x1, x2, x3, numBins, r1=range(x1), r2=range(x2), r3=range(x3))
+{
+  b1 = seq(from = r1[1], to = r1[2], length.out = numBins+1)
+  b2 = seq(from = r2[1], to = r2[2], length.out = numBins+1)
+  b3 = seq(from = r3[1], to = r3[2], length.out = numBins+1)
+  
+  y3d = table( cut(x1, breaks=b1, include.lowest=TRUE ), 
+               cut(x2, breaks=b2, include.lowest=TRUE ),
+               cut(x3, breaks=b3, include.lowest=TRUE ))
+  
+  return( y3d )
+}
+
 #calculate Tr at multiple lags of x variable
 lag_tr <- function(x, y, lags, bins = 10, normalize = TRUE) {
   
   lag_tr <- vector("double", lags) #store lagged MI values
   
   for (i in 1:(lags)) {
-    lag_tr[[i]] <- transfer_entropy(x, y, x_lag = i, ylag = 1, bins, normalize = normalize) # using immediate history of y
+    lag_tr[[i]] <- transfer_entropy(x, y, xlag = i, ylag = 1, bins, normalize = normalize) # using immediate history of y
   }
   
   lag_tr
 }
 
 #calculate Tr time series based on data in list form grouped by time index
-tr_timeseries <- function(x, y, data_list, bins = 10, normalize = TRUE) {
+tr_timeseries <- function(x, y, data_list, lags, bins = 10, normalize = TRUE, type = c("observed", "shuffled")) {
   
-  tr_series <- vector("double", nrow(data_list)) #vector to store transfer entropy
+  output_list <- list()
+  #tr_series <- data.frame("double", ncol(data_list), nrow(lags)) #vector to store transfer entropy
   
   #iterate through indexed datasets and calculate Tr
   for (i in 1:nrow(data_list)) {
+    
+    name <- as.character(data_list[[1]][[i]]) #extract year
+    output_list[[name]]
+    
     current_df <- data_list$data[[i]] #extract current dataframe
     x_var <- eval(substitute(x), current_df)
     y_var <- eval(substitute(y), current_df)
     
-    #NOTE this needs to be expanded to include lags!!!!!!!!!!!!!!!!!!
-    tr_series[[i]] <- transfer_entropy(x_var, y_var, bins, normalize = normalize)
+    if (type == "observed") {
+      output_list[[name]] <- lag_tr(x_var, y_var, lags, bins, normalize)
+    } else if (type == "shuffled") {
+      output_list[[name]] <- lag_confidence(x_var, y_var, lags, type = "TR", runs = 10, bins, normalize)
+    } else {
+      print("Warning: type not assigned correctly")
+    }
   }
-  tr_series
+  output_list
 }

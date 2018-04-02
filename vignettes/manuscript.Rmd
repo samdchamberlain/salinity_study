@@ -245,6 +245,56 @@ b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=datetime, y=Co
 grid.arrange(c, b, ncol=1)
 ```
 
+```{r transfer_entropy}
+source("R/TR_functions.R")
+
+#apply anomaly filter
+anom_data <- peat6_all %>%
+  arrange(time) %>%
+  mutate(CH4_anom = anom_filter(wm_gf),
+         TA_anom = anom_filter(TA.x),
+         GPP_anom = anom_filter(gpp_ANNnight)) %>%
+  arrange(datetime)
+
+#create data list by annual growing season
+by_year <- anom_data %>%
+  filter(year > 2011 & year < 2018 & DOY > 100 & DOY < 300) %>%
+  group_by(year) %>%
+  nest()
+
+#calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
+tr_wm_gpp <- tr_timeseries(GPP_anom, CH4_anom, data_list = by_year, type = "observed", lags = 48*2, bins = 10)
+mc_wm_gpp <- tr_timeseries(GPP_anom, CH4_anom, data_list = by_year, type = "shuffled", lags = 48*2, bins = 10)
+
+#unlist data to tidy dataframe
+tawm_df <- as.data.frame(tr_wm_gpp)
+tawm_df$lag <- rownames(tawm_df)
+
+tawm_df <- gather(tawm_df, year, tr, -lag)
+tawm_df$year <- str_replace(tawm_df$year, 'X', '')
+tawm_df <- map_df(tawm_df, as.numeric)
+tawm_df$hour <-tawm_df$lag/2
+
+#shuffled data
+shuf_df <- as.data.frame(mc_wm_gpp)
+shuf_df$lag <- rownames(shuf_df)
+
+shuf_df <- gather(shuf_df, year, tr, -lag)
+shuf_df$year <- str_replace(shuf_df$year, 'X', '')
+shuf_df <- map_df(shuf_df, as.numeric)
+shuf_df$hour <-shuf_df$lag/2
+
+#add to observed dataset
+tawm_df$mc_wm <- shuf_df$tr
+
+ggplot(tawm_df) +
+  geom_line(aes(x = hour, y = tr)) +
+  geom_line(aes(x = hour, y = mc_wm*2.36), color = "red") +
+  facet_wrap(~year) +
+  scale_x_continuous(limits = c(0, 36))
+```
+
+
 ```{r bias_by_samples, fig.height= 5, fig.width=6}
 #use monthly from above and compare to two month chunks
 # probably move to supplement
