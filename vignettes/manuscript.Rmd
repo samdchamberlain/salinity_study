@@ -248,13 +248,22 @@ grid.arrange(c, b, ncol=1)
 ```{r transfer_entropy}
 source("R/TR_functions.R")
 
+anom_filter <- function(var, window = 5) {
+  as.numeric(var - ma(var, order = window))
+}
+
 #apply anomaly filter
 anom_data <- peat6_all %>%
-  arrange(time) %>%
+  arrange(year, time) %>%
   mutate(CH4_anom = anom_filter(wm_gf),
          TA_anom = anom_filter(TA.x),
-         GPP_anom = anom_filter(gpp_ANNnight)) %>%
-  arrange(datetime)
+         GPP_anom = anom_filter(gpp_ANNnight))
+
+anom_data <- arrange(anom_data, datetime)
+anom_data$CH4na_anom <- ifelse(is.na(anom_data$wm), NA, anom_data$CH4_anom)
+
+#create an index for before and during salinity outbreak
+anom_data$index <- ifelse(anom_data$year %in% c(2012, 2013), "yes", "no")
 
 #create data list by annual growing season
 by_year <- anom_data %>%
@@ -263,8 +272,11 @@ by_year <- anom_data %>%
   nest()
 
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
-tr_wm_gpp <- tr_timeseries(GPP_anom, CH4_anom, data_list = by_year, type = "observed", lags = 48*2, bins = 10)
-mc_wm_gpp <- tr_timeseries(GPP_anom, CH4_anom, data_list = by_year, type = "shuffled", lags = 48*2, bins = 10)
+tr_wm_gpp <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "observed", 
+                           lags = 48*2, bins = 10)
+
+mc_wm_gpp <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
+                           lags = 48*2, bins = 10)
 
 #unlist data to tidy dataframe
 tawm_df <- as.data.frame(tr_wm_gpp)
@@ -289,7 +301,7 @@ tawm_df$mc_wm <- shuf_df$tr
 
 ggplot(tawm_df) +
   geom_line(aes(x = hour, y = tr)) +
-  geom_line(aes(x = hour, y = mc_wm*2.36), color = "red") +
+  geom_line(aes(x = hour, y = mc_wm), color = "red") +
   facet_wrap(~year) +
   scale_x_continuous(limits = c(0, 36))
 ```

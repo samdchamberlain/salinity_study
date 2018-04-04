@@ -57,7 +57,6 @@ lag_tr <- function(x, y, lags, bins = 10, normalize = TRUE) {
 tr_timeseries <- function(x, y, data_list, lags, bins = 10, normalize = TRUE, type = c("observed", "shuffled")) {
   
   output_list <- list()
-  #tr_series <- data.frame("double", ncol(data_list), nrow(lags)) #vector to store transfer entropy
   
   #iterate through indexed datasets and calculate Tr
   for (i in 1:nrow(data_list)) {
@@ -72,7 +71,7 @@ tr_timeseries <- function(x, y, data_list, lags, bins = 10, normalize = TRUE, ty
     if (type == "observed") {
       output_list[[name]] <- lag_tr(x_var, y_var, lags, bins, normalize)
     } else if (type == "shuffled") {
-      output_list[[name]] <- lag_confidence(x_var, y_var, lags, type = "TR", runs = 10, bins, normalize)
+      output_list[[name]] <- lag_confidence(x_var, y_var, alpha = 0.01, lags, type = "TR", runs = 10, bins, normalize)
     } else {
       print("Warning: type not assigned correctly")
     }

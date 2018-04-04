@@ -15,7 +15,7 @@ mi_confidence <- function(x, y, runs = 1000, bins = 10, normalize = T) {
 }
 
 #calculate confidence bound for Transfer Entropy statistical significance
-tr_confidence <- function(x, y, xlag, ylag = 1, runs = 1000, bins = 10, normalize = T) {
+tr_confidence <- function(x, y, xlag, ylag = 1, alpha, runs = 1000, bins = 10, normalize = T) {
   
   mc_out <- rep(NA, runs) #vector for statistic output
   
@@ -24,7 +24,15 @@ tr_confidence <- function(x, y, xlag, ylag = 1, runs = 1000, bins = 10, normaliz
     rand_x <- sample(x, length(x), replace = F) #randomly shuffle x variable
     mc_out[i] <- transfer_entropy(rand_x, y, xlag, ylag, bins = bins, normalize = normalize)
   }
-  mean(mc_out)
+  
+  if (alpha == 0.01) {
+    limit <- mean(mc_out) + 2.36*sd(mc_out)
+  } else if (alpha == 0.05) {
+    limit <- mean(mc_out) + 1.66*sd(mc_out)
+  } else {
+    return("This threshold is not supported")
+  }
+  limit
 }
 
 #calculate times series of Monte Carlo limits (does not include time lags)
@@ -50,7 +58,8 @@ conf_series <- function(x, y, data_list, runs = 1000, type=c("MI", "TR")) {
   MC_series
 }
 
-lag_confidence <- function(x, y, lags, type = c("MI", "TR"), runs = 1000, bins = 10, normalize = TRUE) {
+lag_confidence <- function(x, y, lags, type = c("MI", "TR"), alpha, 
+                           runs = 1000, bins = 10, normalize = TRUE) {
   
   MC_lagseries <- vector("double", lags) #vector for shuffled metrics
   
@@ -61,7 +70,7 @@ lag_confidence <- function(x, y, lags, type = c("MI", "TR"), runs = 1000, bins =
     }
   } else if (type == "TR") {
     for (i in 1:(lags)) {
-      MC_lagseries[[i]] <- tr_confidence(x, y, xlag = i, runs = runs, bins = bins, normalize = normalize)
+      MC_lagseries[[i]] <- tr_confidence(x, y, xlag = i, ylag = 1, alpha, runs, bins, normalize)
     }
   } else {
     return("Warning: not a valid test")
