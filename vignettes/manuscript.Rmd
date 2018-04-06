@@ -43,6 +43,7 @@ library(caret)
 library(modelr)
 library(forecast)
 library(entropy)
+library(stringr)
 ```
 
 <!-- \newpage -->
@@ -172,7 +173,7 @@ test <- prcomp(out_sub, scale. = T)
 biplot(test)
 ```
 
-```{r entropy_analysis_peat, fig.width = 7, fig.height= 8}
+```{r entropy_analysis_peat, fig.cap="Monthly relative mutual information (MI; top panel) shared between GEP and F~CH4~ (green line) as well as T~a~ and F~CH4~ (red line). All MI values are corrected for bias due to varied sample size using Monte Carlo reshuffling of time series such that MI = 0 represents the threshold of statistical significance (*P* < 0.05). Bottom panel displays daily mean water column conductivity (mS).", fig.width=7, fig.height=5, dpi=600}
 source("R/MI_functions.R")
 
 # # test multiple binning strategies
@@ -188,15 +189,11 @@ source("R/MI_functions.R")
 peat6_all$month <- month(peat6_all$datetime)
 peat6_all$m_yr <- paste(peat6_all$year, peat6_all$month, sep = "")
 
-# #try a differencing approach
-# peat6_all$wm_diff <- c(NA, diff(peat6_all$wm))
-# peat6_all$TA_diff <- c(NA, diff(peat6_all$TA.x))
-# peat6_all$GPP_diff <- c(NA, diff(peat6_all$gpp_ANNnight))
-
 #shuffle data for comparison w/ monthly gap magnitude retained
 peat6_all <- peat6_all %>%
   group_by(month) %>%
   mutate(H_shuf = sample(TA.x, length(TA.x), replace = F),
+         G_shuf = sample(gpp_ANNnight, length(gpp_ANNnight), replace = F),
          wm_shuf = sample(wm, length(wm), replace = F))
 
 #create data list by month
@@ -207,50 +204,48 @@ by_month <- peat6_all %>%
 
 #plot that needs to be dealt with later
 clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
+clipped_monthly$date <- as.Date(clipped_monthly$datetime)
 clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month)
 clipped_monthly$ET_CH4_mi <- mi_timeseries(H_shuf, wm_shuf, data_list = by_month)
 clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
 
-# # Monte Carlo significance thresholds (dont run everytime as they take a while)
-# #sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000)
-# # mean sig_gpp across all months: 0.02311099
-# 
-# #sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000)
-# # mean sig_Tair across all months: 0.03119986
-#
-# #sig_H <- conf_series(H_gf, wm, data_list = by_month, runs = 100)
-# # mean sig_Tair across all months: 0.03119986
+# Monte Carlo significance thresholds (dont run everytime as they take a while)
+#sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000, alpha = 0.01)
+# mean sig_gpp across all months at p < 0.01: 0.034
 
-# clipped_monthly$Tair_ma <- ifelse(clipped_monthly$CH4_obs < 500, NA, clipped_monthly$Tair_CH4_mi)
-# clipped_monthly$GPP_ma <- ifelse(clipped_monthly$CH4_obs < 500, NA, clipped_monthly$GPP_CH4_mi)
-# 
+#sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000, alpha = 0.01)
+# mean sig_Tair across all months at p < 0.01: 0.042
+
+# sig_H <- conf_series(H_gf, wm, data_list = by_month, runs = 1000, alpha = 0.01)
+# # mean sig_Tair across all months at p < 0.01: 0.039
+
 # clipped_monthly$Tair_ma <- na.ma(ma(clipped_monthly$Tair_ma, 3))
 # clipped_monthly$GPP_ma <- na.ma(ma(clipped_monthly$GPP_ma, 3))
 
-c <- ggplot(clipped_monthly) +
-  geom_hline(yintercept = 0.02311099*2.36, size = 0.5, color = "dark green", linetype = "dashed") +
-  geom_hline(yintercept = 0.03119986*2.36, size = 0.5, color = "red", linetype = "dashed") +
-  geom_point(aes(x = datetime, y = Tair_CH4_mi), color = "red", alpha = 0.5) +
-  geom_line(aes(x = datetime, y = ma(Tair_CH4_mi, 3)), color = "red", size = 1) +
-  geom_point(aes(x = datetime, y = GPP_CH4_mi), color = "dark green", alpha = 0.5) +
-  geom_line(aes(x = datetime, y = ma(GPP_CH4_mi, 3)), color = "dark green", size = 1) +
-  #geom_point(aes(x = datetime, y = ET_CH4_mi), color = "blue", alpha = 0.5) +
-  #geom_line(aes(x = datetime, y = ma(ET_CH4_mi, 3)), color = "blue", size = 1) +
-  ylab("Mutual information") + theme_bw() + xlab("")
+# Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.01
+clipped_monthly$TairMI_corrected <- clipped_monthly$Tair_CH4_mi - sig_Tair
+clipped_monthly$gppMI_corrected <- clipped_monthly$GPP_CH4_mi - sig_gpp
 
-b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=datetime, y=Cond)) +
+a <- ggplot(clipped_monthly) +
+  geom_point(aes(x = date, y = TairMI_corrected), color = "red", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(TairMI_corrected, 3)), color = "red", size = 1) +
+  geom_point(aes(x = date, y = gppMI_corrected), color = "dark green", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(gppMI_corrected, 3)), color = "dark green", size = 1) +  
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  ylab(expression(bolditalic(MI)~"(x,"~F[CH4]~")")) + theme_bw() + xlab("")
+
+b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=as.Date(datetime), y=Cond)) +
   geom_line(color = "blue") +
-  ylab("Conductivity (mS)") + theme_bw()
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  ylab("Conductivity (mS)") + xlab("Year") +
+  theme_bw()
   
-grid.arrange(c, b, ncol=1)
+grid.arrange(a, b, ncol=1)
 ```
 
-```{r transfer_entropy}
+```{r tr_GPP_to_CH4, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly GEP to F~CH4~ and (bottom panel) T~a~ to F~CH4~ over the growing season during years of low salinity (2012-2013) and high salinity (2015-2016). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Other lines represented ***T*** at various lags of GEP or T~a~ and color demonstrates mean conductivity (mS) during the respective year. Years 2014 and 2017 are omitted from analysis because other disturbance events affected wetlands processes and confound entropy analyses." fig.height=4, fig.width=7.5, dpi=600}
 source("R/TR_functions.R")
-
-anom_filter <- function(var, window = 5) {
-  as.numeric(var - ma(var, order = window))
-}
+source("R/transformations.R")
 
 #apply anomaly filter
 anom_data <- peat6_all %>%
@@ -260,50 +255,60 @@ anom_data <- peat6_all %>%
          GPP_anom = anom_filter(gpp_ANNnight))
 
 anom_data <- arrange(anom_data, datetime)
-anom_data$CH4na_anom <- ifelse(is.na(anom_data$wm), NA, anom_data$CH4_anom)
+anom_data$CH4na_anom <- ifelse(is.na(anom_data$wm), NA, anom_data$CH4_anom) # re-insert missing values
 
-#create an index for before and during salinity outbreak
-anom_data$index <- ifelse(anom_data$year %in% c(2012, 2013), "yes", "no")
+# Focus only on high v. low salinity years without additional disturbance
+# other disturbance includes the 2014 insect outbreak and 2017 flushing events
+anom_data <- subset(anom_data, year %in% c(2012, 2013, 2015, 2016))
 
 #create data list by annual growing season
 by_year <- anom_data %>%
-  filter(year > 2011 & year < 2018 & DOY > 100 & DOY < 300) %>%
+  filter(DOY > 100 & DOY < 300) %>%
   group_by(year) %>%
   nest()
 
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
-tr_wm_gpp <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "observed", 
-                           lags = 48*2, bins = 10)
+# for GPP -> CH4
+tr_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "observed", 
+                           lags = 120, bins = 10)
 
-mc_wm_gpp <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 48*2, bins = 10)
+mc_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
+                           lags = 120, bins = 10, runs = 5, alpha = 0.05)
+# for TA -> CH4
+tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "observed", 
+                           lags = 120, bins = 10)
+
+mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
+                           lags = 120, bins = 10, runs = 5, alpha = 0.05)
 
 #unlist data to tidy dataframe
-tawm_df <- as.data.frame(tr_wm_gpp)
-tawm_df$lag <- rownames(tawm_df)
+gpp.wm_df <- tidy_list(tr_wm_gpp); gpp.wm_shuf <- tidy_list(mc_wm_gpp)
+ta.wm_df <- tidy_list(tr_wm_ta); ta.wm_shuf <- tidy_list(mc_wm_ta)
 
-tawm_df <- gather(tawm_df, year, tr, -lag)
-tawm_df$year <- str_replace(tawm_df$year, 'X', '')
-tawm_df <- map_df(tawm_df, as.numeric)
-tawm_df$hour <-tawm_df$lag/2
+#add mean annual conductivity to dataframes by year
+mean_cond <- anom_data %>%
+  filter(DOY > 100 & DOY < 300) %>%
+  group_by(year) %>%
+  summarise(`Cond (mS)` = mean(Cond, na.rm = T))
 
-#shuffled data
-shuf_df <- as.data.frame(mc_wm_gpp)
-shuf_df$lag <- rownames(shuf_df)
+gpp.wm_df <- merge(gpp.wm_df, mean_cond, all.x = T) 
+ta.wm_df <- merge(ta.wm_df, mean_cond, all.x = T) 
 
-shuf_df <- gather(shuf_df, year, tr, -lag)
-shuf_df$year <- str_replace(shuf_df$year, 'X', '')
-shuf_df <- map_df(shuf_df, as.numeric)
-shuf_df$hour <-shuf_df$lag/2
+a <- ggplot() +
+  geom_line(data = gpp.wm_df, aes(x = hour, y = tr, color = `Cond (mS)`)) +
+  geom_line(data = gpp.wm_shuf, aes(x = hour, y = tr), color = "red") +
+  facet_wrap(~year, nrow = 1) +
+  scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
+  xlab("") + ylab(expression(bolditalic(T)~"("~GEP %->% F[CH4]~")"))
 
-#add to observed dataset
-tawm_df$mc_wm <- shuf_df$tr
+b <- ggplot() +
+  geom_line(data = ta.wm_df, aes(x = hour, y = tr, color = `Cond (mS)`)) +
+  geom_line(data = ta.wm_shuf, aes(x = hour, y = tr), color = "red") +
+  facet_wrap(~year, nrow = 1) +
+  scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
+  xlab("Lag (hours)") + ylab(expression(bolditalic(T)~"("~T[a] %->% F[CH4]~")"))
 
-ggplot(tawm_df) +
-  geom_line(aes(x = hour, y = tr)) +
-  geom_line(aes(x = hour, y = mc_wm), color = "red") +
-  facet_wrap(~year) +
-  scale_x_continuous(limits = c(0, 36))
+grid.arrange(a, b, ncol = 1)
 ```
 
 
@@ -311,30 +316,32 @@ ggplot(tawm_df) +
 #use monthly from above and compare to two month chunks
 # probably move to supplement
 
-# create a bimonthly grouping
-peat6_all$bimonth <- paste(peat6_all$year, floor((peat6_all$month+1)/2), sep="")
+# # create a bimonthly grouping
+# peat6_all$bimonth <- paste(peat6_all$year, floor((peat6_all$month+1)/2), sep="")
+# 
+# by_bimonth <- peat6_all %>%
+#   filter(year > 2011 & year < 2018) %>%
+#   group_by(bimonth) %>%
+#   nest()
 
-by_bimonth <- peat6_all %>%
-  filter(year > 2011 & year < 2018) %>%
-  group_by(bimonth) %>%
-  nest()
+# #reshuffle by gap magnitude preserved
+# peat6_all <- peat6_all %>%
+#   group_by(bimonth) %>%
+#   mutate(H_shuf = sample(TA.x, length(TA.x), replace = F),
+#          G_shuf = sample(gpp_ANNnight, length(gpp_ANNnight), replace = F),
+#          wm_shuf = sample(wm, length(wm), replace = F))
 
-#reshuffle by gap magnitude preserved
-peat6_all <- peat6_all %>%
-  group_by(bimonth) %>%
-  mutate(H_shuf = sample(TA.x, length(TA.x), replace = F),
-         wm_shuf = sample(wm, length(wm), replace = F))
+# #calculate bimonthly MI
+# clipped_bimonthly <- subset(peat6_monthly, year > 2011 & year < 2018)
+# clipped_bimonthly$bimonth <- paste(clipped_bimonthly$year, floor((clipped_bimonthly$month+1)/2), sep="")
+# clipped_bimonthly <- aggregate(clipped_bimonthly, by=list(clipped_bimonthly$bimonth), FUN=mean)
 
-#calculate bimonthly MI
-clipped_bimonthly <- subset(peat6_monthly, year > 2011 & year < 2018)
-clipped_bimonthly$bimonth <- paste(clipped_bimonthly$year, floor((clipped_bimonthly$month+1)/2), sep="")
-clipped_bimonthly <- aggregate(clipped_bimonthly, by=list(clipped_bimonthly$bimonth), FUN=mean)
-
-clipped_bimonthly$ET_CH4_mi <- mi_timeseries(H_shuf, wm_shuf, data_list = by_bimonth)
+clipped_monthly$T_shuf <- mi_timeseries(H_shuf, wm_shuf, data_list = by_month)
+clipped_monthly$G_shuf <- mi_timeseries(G_shuf, wm_shuf, data_list = by_month)
 
 ggplot() +
-  geom_point(data = clipped_monthly, aes(x = CH4_obs, y = ET_CH4_mi)) +
-  geom_point(data = clipped_bimonthly, aes(x = CH4_obs, y = ET_CH4_mi), color = "red") +
+  geom_point(data = clipped_monthly, aes(x = CH4_obs, y = G_shuf)) +
+  geom_point(data = clipped_monthly, aes(x = CH4_obs, y = T_shuf), color = "red") +
   xlab("Number of flux obs.") + ylab("MI (reshuffled data)")
 ```
 

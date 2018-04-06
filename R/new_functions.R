@@ -1,3 +1,15 @@
+#' Misc functions for data and list transformations:
+#' anom_filter - removes periodic signal from data
+#' 
+#'
+#' @importFrom dplyr lag
+
+anom_filter <- function(var, window = 5) {
+  as.numeric(var - ma(var, order = window))
+}
+
+
+
 joint_entropy <- function(x, y, bins = 11) {
   
   clip_set <- na.omit(data.frame(x, y)) #clear NA values from x,y variables

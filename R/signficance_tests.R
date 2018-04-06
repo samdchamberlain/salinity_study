@@ -1,17 +1,26 @@
 #' Functions for statistical signficance of mutual information and transfer entropy via
 #' Monte Carlo reshuffling of datasets. Includes functions for single test and time series
+#'
+#' @importFrom dplyr lag
 
 #calculate confidence bound for Mutual Information statistical significance
-mi_confidence <- function(x, y, runs = 1000, bins = 10, normalize = T) {
+mi_confidence <- function(x, y, alpha = 0.05, runs = 1000, bins = 10, normalize = T) {
   
   mc_out <- rep(NA, runs) #vector for statistic output
   
   for (i in 1:runs) {
-    
     rand_x <- sample(x, length(x), replace = F) #randomly shuffle x variable
-    mc_out[i] <- mutual_info(rand_x, y, bins = bins, normalize = normalize) #calculate MI between shuffled x and y
+    mc_out[i] <- mutual_info(rand_x, y, bins, normalize) #calculate MI between shuffled x and y
   }
-  mean(mc_out)
+  
+  if (alpha == 0.01) {
+    limit <- mean(mc_out) + 2.36*sd(mc_out)
+  } else if (alpha == 0.05) {
+    limit <- mean(mc_out) + 1.66*sd(mc_out)
+  } else {
+    return("This threshold is not supported")
+  }
+  limit
 }
 
 #calculate confidence bound for Transfer Entropy statistical significance
@@ -20,7 +29,6 @@ tr_confidence <- function(x, y, xlag, ylag = 1, alpha, runs = 1000, bins = 10, n
   mc_out <- rep(NA, runs) #vector for statistic output
   
   for (i in 1:runs) {
-    
     rand_x <- sample(x, length(x), replace = F) #randomly shuffle x variable
     mc_out[i] <- transfer_entropy(rand_x, y, xlag, ylag, bins = bins, normalize = normalize)
   }
@@ -36,7 +44,7 @@ tr_confidence <- function(x, y, xlag, ylag = 1, alpha, runs = 1000, bins = 10, n
 }
 
 #calculate times series of Monte Carlo limits (does not include time lags)
-conf_series <- function(x, y, data_list, runs = 1000, type=c("MI", "TR")) {
+conf_series <- function(x, y, data_list, alpha = 0.05, runs = 1000, type=c("MI", "TR")) {
   
   MC_series <- vector("double", nrow(data_list))
   
@@ -46,9 +54,9 @@ conf_series <- function(x, y, data_list, runs = 1000, type=c("MI", "TR")) {
     y_var <- eval(substitute(y), current_df)
     
     if (type == "MI") {
-      MC_mean <- mi_confidence(x_var, y_var, runs)
+      MC_mean <- mi_confidence(x_var, y_var, alpha, runs)
     } else if (type == "TR") {
-      MC_mean <- tr_confidence(x_var, y_var, runs)
+      MC_mean <- tr_confidence(x_var, y_var, alpha, runs)
     } else {
       return("Warning: not a valid test")
     }

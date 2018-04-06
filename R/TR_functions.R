@@ -54,7 +54,7 @@ lag_tr <- function(x, y, lags, bins = 10, normalize = TRUE) {
 }
 
 #calculate Tr time series based on data in list form grouped by time index
-tr_timeseries <- function(x, y, data_list, lags, bins = 10, normalize = TRUE, type = c("observed", "shuffled")) {
+tr_timeseries <- function(x, y, data_list, lags, runs, bins = 10, alpha = 0.05, normalize = TRUE, type = c("observed", "shuffled")) {
   
   output_list <- list()
   
@@ -71,7 +71,7 @@ tr_timeseries <- function(x, y, data_list, lags, bins = 10, normalize = TRUE, ty
     if (type == "observed") {
       output_list[[name]] <- lag_tr(x_var, y_var, lags, bins, normalize)
     } else if (type == "shuffled") {
-      output_list[[name]] <- lag_confidence(x_var, y_var, alpha = 0.01, lags, type = "TR", runs = 10, bins, normalize)
+      output_list[[name]] <- lag_confidence(x_var, y_var, lags, type = "TR", alpha, runs, bins, normalize)
     } else {
       print("Warning: type not assigned correctly")
     }
