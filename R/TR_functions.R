@@ -20,7 +20,7 @@ transfer_entropy <- function(x, y, xlag, ylag = 1, bins = 10, normalize = TRUE) 
   Hy <- entropy.empirical(discretize(na.omit(clip_set$y), numBins = bins), unit = "log2") # entropy at current state
   
   if (normalize == T) {
-    Tr = (Hxy + Hyy - Hyl - Hxyz)/Hy
+    Tr = (Hxy + Hyy - Hyl - Hxyz)/Hyl
   } else {
     Tr = Hxy + Hyy - Hyl - Hxyz
   }

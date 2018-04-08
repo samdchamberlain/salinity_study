@@ -175,6 +175,7 @@ biplot(test)
 
 ```{r entropy_analysis_peat, fig.cap="Monthly relative mutual information (MI; top panel) shared between GEP and F~CH4~ (green line) as well as T~a~ and F~CH4~ (red line). All MI values are corrected for bias due to varied sample size using Monte Carlo reshuffling of time series such that MI = 0 represents the threshold of statistical significance (*P* < 0.05). Bottom panel displays daily mean water column conductivity (mS).", fig.width=7, fig.height=5, dpi=600}
 source("R/MI_functions.R")
+source("R/signficance_tests.R")
 
 # # test multiple binning strategies
 # bin_v = seq(4, 22, by = 2)
@@ -210,10 +211,10 @@ clipped_monthly$ET_CH4_mi <- mi_timeseries(H_shuf, wm_shuf, data_list = by_month
 clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
 
 # Monte Carlo significance thresholds (dont run everytime as they take a while)
-#sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000, alpha = 0.01)
+sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 100, alpha = 0.01)
 # mean sig_gpp across all months at p < 0.01: 0.034
 
-#sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000, alpha = 0.01)
+sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 100, alpha = 0.01)
 # mean sig_Tair across all months at p < 0.01: 0.042
 
 # sig_H <- conf_series(H_gf, wm, data_list = by_month, runs = 1000, alpha = 0.01)
@@ -270,16 +271,16 @@ by_year <- anom_data %>%
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
 # for GPP -> CH4
 tr_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "observed", 
-                           lags = 120, bins = 10)
+                           lags = 120, bins = 10, normalize = T)
 
 mc_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 5, alpha = 0.05)
+                           lags = 120, bins = 10, runs = 5, alpha = 0.05, normalize = T)
 # for TA -> CH4
 tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "observed", 
-                           lags = 120, bins = 10)
+                           lags = 120, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 5, alpha = 0.05)
+                           lags = 120, bins = 10, runs = 5, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 gpp.wm_df <- tidy_list(tr_wm_gpp); gpp.wm_shuf <- tidy_list(mc_wm_gpp)
@@ -289,7 +290,7 @@ ta.wm_df <- tidy_list(tr_wm_ta); ta.wm_shuf <- tidy_list(mc_wm_ta)
 mean_cond <- anom_data %>%
   filter(DOY > 100 & DOY < 300) %>%
   group_by(year) %>%
-  summarise(`Cond (mS)` = mean(Cond, na.rm = T))
+  summarise(`Cond. (mS)` = mean(Cond, na.rm = T))
 
 gpp.wm_df <- merge(gpp.wm_df, mean_cond, all.x = T) 
 ta.wm_df <- merge(ta.wm_df, mean_cond, all.x = T) 
@@ -299,16 +300,29 @@ a <- ggplot() +
   geom_line(data = gpp.wm_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
   scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
-  xlab("") + ylab(expression(bolditalic(T)~"("~GEP %->% F[CH4]~")"))
+  xlab("") + ylab(expression(bolditalic(T)~"("~GEP %->% F[CH4]~")")) +
+  theme(legend.position = "none")
 
 b <- ggplot() +
   geom_line(data = ta.wm_df, aes(x = hour, y = tr, color = `Cond (mS)`)) +
   geom_line(data = ta.wm_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
   scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
-  xlab("Lag (hours)") + ylab(expression(bolditalic(T)~"("~T[a] %->% F[CH4]~")"))
+  xlab("Lag (hours)") + ylab(expression(bolditalic(T)~"("~T[a] %->% F[CH4]~")")) +
+  theme(legend.margin = margin(0, 0, 0, 0),
+        legend.position=c(.31, .7), legend.key.size =  unit(0.12, "in"),
+        legend.text = element_text(size=8), legend.title = element_text(size=8.5, face = "bold"),
+        legend.background = element_rect(fill = "transparent"))
 
-grid.arrange(a, b, ncol = 1)
+
+#Multiple plots aligned
+iA <- ggplotGrob(a)
+iB <- ggplotGrob(b)
+
+maxWidth = grid::unit.pmax(iA$widths[2:5], iB$widths[2:5])
+iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth); 
+
+grid.arrange(iA, iB, ncol=1)
 ```
 
 
@@ -421,8 +435,79 @@ ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
   geom_line()
 ```
 
-<!-- ## Information theory approach -->
 
+```{r pre_salinity_models, fig.cap="", fig.height=6, fig.width=3.5, dpi=600}
+# train nn model on pre-salinity rise years and use to calculate reduction in component fluxes 
+pre_rise <- peat6_daily %>%
+  filter(year > 2011 & year < 2015) %>%
+  select(mgCH4, gGEP, gER, mET, PAR, H, Tair, Tw, Ts, mVPD, PA, u., Rain, WTD)
+
+# Random forest model for GEP trained pre-salinity rise
+pre_GEP <- train(gGEP ~ Tair + PAR + mVPD + PA + u. + WTD, data = pre_rise,
+                      method = "rf",
+                      trControl = trainControl(method = "cv", number = 4),
+                      preProcess = c("medianImpute"),
+                      #tuneGrid = expand.grid(.decay = c(.1, 0.05, .01), .size = c(3, 5, 7, 9)),
+                      na.action = na.pass)
+
+# Random forest model for FCH4 trained pre-salinity rise
+pre_CH4 <- train(mgCH4 ~ gGEP + Tair + mVPD + PA + u. + WTD, data = pre_rise,
+                      method = "rf",
+                      trControl = trainControl(method = "cv", number = 4),
+                      preProcess = c("medianImpute"),
+                      #tuneGrid = expand.grid(.decay = c(.1, 0.05, .01), .size = c(3, 5, 7, 9)),
+                      na.action = na.pass)
+
+# generate predictions for high salinity years for GEP and FCH4
+pre_rise$GEPpred <- predict.train(pre_GEP, pre_rise, na.action = na.pass)
+pre_rise$CH4pred <- predict.train(pre_CH4, pre_rise, na.action = na.pass)
+
+# save ob v. pred summary statistics
+GEPregr <- summary(lm(gGEP ~ GEPpred, data = pre_rise))
+CH4regr <- summary(lm(mgCH4 ~ CH4pred, data = pre_rise))
+
+a <- ggplot(pre_rise, aes(x = CH4pred, y = mgCH4)) +
+  geom_point(alpha = 0.25) +
+  geom_abline(intercept = 0, slope = 1) +
+  xlab(expression(F[CH4-Pred.]~" (mg C"~m^{-2}~d^{-1}~")")) +
+  ylab(expression(F[CH4-Obs.]~" (mg C"~m^{-2}~d^{-1}~")")) +
+  ggtitle("Pre-salinity rise (2012-2014)")
+
+b <- ggplot(pre_rise, aes(x = GEPpred*-1, y = gGEP*-1)) +
+  geom_point(alpha = 0.25) +
+  geom_abline(intercept = 0, slope = 1) +
+  ylab(expression(GEP[Obs.]~"("~g~C~m^{-2}~d^{-1}~")")) +
+  xlab(expression(GEP[Pred.]~"("~g~C~m^{-2}~d^{-1}~")"))
+
+grid.arrange(a, b, ncol = 1)
+```
+
+```{r salinity_rise_predictions, fig.width=7.5, fig.height=4}
+# extract data to make predictions on the salinity rise years
+rise_years <- peat6_daily %>%
+  filter(year > 2014 & year < 2017) %>%
+  select(datetime, mgCH4, gGEP, gER, mET, PAR, H, Tair, Tw, Ts, mVPD, PA, u., Rain, WTD)
+
+# generate predictions for high salinity years for GEP and FCH4
+rise_years$GEPpred <- predict.train(pre_GEP, rise_years, na.action = na.pass)
+rise_years$CH4pred <- predict.train(pre_CH4, rise_years, na.action = na.pass)
+
+#plotting all the measures
+a <- ggplot(rise_years) +
+  geom_line(aes(x=datetime, y=mgCH4)) +
+  geom_line(aes(x=datetime, y=CH4pred), color = "red") +
+  ylab(expression(F[CH4]~" (mg C"~m^{-2}~d^{-1}~")")) + xlab("") +
+  ggtitle("High salinity period (2015-2016)") +
+  theme_classic()
+
+b <- ggplot(rise_years) +
+  geom_line(aes(x=datetime, y=gGEP*-1)) +
+  geom_line(aes(x=datetime, y=GEPpred*-1), color = "red") +
+  ylab(expression("GEP "~"("~g~C~m^{-2}~d^{-1}~")")) + xlab("Date") +
+  theme_classic()
+
+grid.arrange(a, b, ncol = 1)
+```
 
 <!-- ## Water chemistry -->
 
@@ -443,7 +528,7 @@ ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
 <!-- regr <- lm(DOrange1 ~ mgCH4, data = subset(only16, season == "growing")); summary(regr) -->
 <!-- ``` -->
 
-<!-- # Discussion -->
+# Discussion
 
 # Acknowledgements
 This research was supported in part by the U.S. Department of Energy’s Office of Science and its funding of Ameriflux core sites (Ameriflux contract 7079856), and the California Division of Fish and Wildlife, through a contract of the California Department of Water Resources (Award 4600011240).
