@@ -486,7 +486,7 @@ grid.arrange(a, b, ncol = 1)
 # extract data to make predictions on the salinity rise years
 rise_years <- peat6_daily %>%
   filter(year > 2014 & year < 2017) %>%
-  select(datetime, mgCH4, gGEP, gER, mET, PAR, H, Tair, Tw, Ts, mVPD, PA, u., Rain, WTD)
+  select(datetime, year, mgCH4, gGEP, gER, mET, PAR, H, Tair, Tw, Ts, mVPD, PA, u., Rain, WTD)
 
 # generate predictions for high salinity years for GEP and FCH4
 rise_years$GEPpred <- predict.train(pre_GEP, rise_years, na.action = na.pass)
@@ -507,6 +507,18 @@ b <- ggplot(rise_years) +
   theme_classic()
 
 grid.arrange(a, b, ncol = 1)
+```
+
+```{r flux_reduction_estimates}
+#calculate annual budgets for RF predictions and observations during salinity years
+annual_budgets <- rise_years %>%
+  group_by(year) %>%
+  summarise(CH4yr = mean(mgCH4)*365/1000,
+            CH4yr_rf = mean(CH4pred)*365/1000,
+            GEPyr = mean(gGEP)*365,
+            GEPyr_rf = mean(GEPpred)*365) %>%
+  mutate(CH4pc = (CH4yr - CH4yr_rf)*100/CH4yr,
+         GEPpc = (GEPyr - GEPyr_rf)*100/GEPyr)
 ```
 
 <!-- ## Water chemistry -->
