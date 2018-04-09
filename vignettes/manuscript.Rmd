@@ -296,7 +296,7 @@ gpp.wm_df <- merge(gpp.wm_df, mean_cond, all.x = T)
 ta.wm_df <- merge(ta.wm_df, mean_cond, all.x = T) 
 
 a <- ggplot() +
-  geom_line(data = gpp.wm_df, aes(x = hour, y = tr, color = `Cond (mS)`)) +
+  geom_line(data = gpp.wm_df, aes(x = hour, y = tr, color = `Cond. (mS)`)) +
   geom_line(data = gpp.wm_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
   scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
@@ -304,7 +304,7 @@ a <- ggplot() +
   theme(legend.position = "none")
 
 b <- ggplot() +
-  geom_line(data = ta.wm_df, aes(x = hour, y = tr, color = `Cond (mS)`)) +
+  geom_line(data = ta.wm_df, aes(x = hour, y = tr, color = `Cond. (mS)`)) +
   geom_line(data = ta.wm_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
   scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
@@ -327,28 +327,6 @@ grid.arrange(iA, iB, ncol=1)
 
 
 ```{r bias_by_samples, fig.height= 5, fig.width=6}
-#use monthly from above and compare to two month chunks
-# probably move to supplement
-
-# # create a bimonthly grouping
-# peat6_all$bimonth <- paste(peat6_all$year, floor((peat6_all$month+1)/2), sep="")
-# 
-# by_bimonth <- peat6_all %>%
-#   filter(year > 2011 & year < 2018) %>%
-#   group_by(bimonth) %>%
-#   nest()
-
-# #reshuffle by gap magnitude preserved
-# peat6_all <- peat6_all %>%
-#   group_by(bimonth) %>%
-#   mutate(H_shuf = sample(TA.x, length(TA.x), replace = F),
-#          G_shuf = sample(gpp_ANNnight, length(gpp_ANNnight), replace = F),
-#          wm_shuf = sample(wm, length(wm), replace = F))
-
-# #calculate bimonthly MI
-# clipped_bimonthly <- subset(peat6_monthly, year > 2011 & year < 2018)
-# clipped_bimonthly$bimonth <- paste(clipped_bimonthly$year, floor((clipped_bimonthly$month+1)/2), sep="")
-# clipped_bimonthly <- aggregate(clipped_bimonthly, by=list(clipped_bimonthly$bimonth), FUN=mean)
 
 clipped_monthly$T_shuf <- mi_timeseries(H_shuf, wm_shuf, data_list = by_month)
 clipped_monthly$G_shuf <- mi_timeseries(G_shuf, wm_shuf, data_list = by_month)
@@ -359,83 +337,6 @@ ggplot() +
   xlab("Number of flux obs.") + ylab("MI (reshuffled data)")
 ```
 
-```{r test, echo = F}
-#CH4sub <- peat6_all[!is.na(peat6_all$wm), ]
-
-by_year <- peat6_daily %>%
-  filter(year > 2011 & year < 2018) %>%
-  group_by(year) %>%
-  select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD) %>%
-  nest()
-
-net_model <- function(df) {
-  train(mgCH4 ~ ., data = df, method = "glmnet",
-                 trControl = trainControl(method = "cv"),
-                 preProcess = c("center", "scale", "medianImpute", "BoxCox"),
-                 tuneGrid = expand.grid(.alpha = 1, .lambda = 0.1),
-                 na.action = na.pass)
-}
-
-# hh_model <- function(df) {
-#   train(wm ~ gpp_ANNnight + wq_gf + wt_gf + TA.y + VPD + ustar + PRECIP + WT + WD,
-#         data = df,
-#         method = "glmnet",
-#         preProcess = c("center", "scale", "medianImpute", "BoxCox"),
-#         na.action = na.pass)
-# }
-
-# subset <- peat6_daily %>%
-#   ungroup() %>%
-#   select(mgCH4, gGEP, gER, mET, H, Tair, Tw, mVPD, u., Rain, WTD) %>%
-#   na.omit()
-
-# #caret approach
-# glm_reg <- train(wm ~ gpp_ANNnight + wq_gf + wt_gf + TA.y + VPD + ustar + PRECIP + WT + WD, 
-#                  data = CH4sub, method = "glmnet",
-#                  trControl = trainControl(method = "cv"),
-#                  preProcess = c("center", "scale", "medianImpute"),
-#                  #tuneGrid = expand.grid(.alpha = 1, .lambda = c(0, 0.001, 0.1, 1, 5, 10, 20, 50)),
-#                  na.action = na.pass)
-
-by_year <- by_year %>%
-  mutate(model = map(data, net_model),
-         Imp = map(model, varImp))
-
-impo_list <- by_year$Imp
-
-a <- impo_list[[1]]$importance
-a$year <- 2012
-a$vars <- rownames(a)
-
-b <- impo_list[[2]]$importance
-b$year <- 2013
-b$vars <- rownames(b)
-
-c <- impo_list[[3]]$importance
-c$year <- 2014
-c$vars <- rownames(c)
-
-d <- impo_list[[4]]$importance
-d$year <- 2015
-d$vars <- rownames(d)
-
-e <- impo_list[[5]]$importance
-e$year <- 2016
-e$vars <- rownames(e)
-
-f <- impo_list[[6]]$importance
-f$year <- 2017
-f$vars <- rownames(f)
-
-all_now <- do.call("rbind", list(a, b, c, d, e, f))
-
-ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
-  #stat_smooth(se=F) +
-  geom_point(size = 2) +
-  geom_line()
-```
-
-
 ```{r pre_salinity_models, fig.cap="", fig.height=6, fig.width=3.5, dpi=600}
 # train nn model on pre-salinity rise years and use to calculate reduction in component fluxes 
 pre_rise <- peat6_daily %>%
@@ -445,15 +346,16 @@ pre_rise <- peat6_daily %>%
 # Random forest model for GEP trained pre-salinity rise
 pre_GEP <- train(gGEP ~ Tair + PAR + mVPD + PA + u. + WTD, data = pre_rise,
                       method = "rf",
-                      trControl = trainControl(method = "cv", number = 4),
+                      trControl = trainControl(method = "cv", number = 5),
                       preProcess = c("medianImpute"),
                       #tuneGrid = expand.grid(.decay = c(.1, 0.05, .01), .size = c(3, 5, 7, 9)),
-                      na.action = na.pass)
+                      na.action = na.pass,
+                      linout = T)
 
 # Random forest model for FCH4 trained pre-salinity rise
 pre_CH4 <- train(mgCH4 ~ gGEP + Tair + mVPD + PA + u. + WTD, data = pre_rise,
                       method = "rf",
-                      trControl = trainControl(method = "cv", number = 4),
+                      trControl = trainControl(method = "cv", number = 5),
                       preProcess = c("medianImpute"),
                       #tuneGrid = expand.grid(.decay = c(.1, 0.05, .01), .size = c(3, 5, 7, 9)),
                       na.action = na.pass)
@@ -539,6 +441,82 @@ annual_budgets <- rise_years %>%
 
 <!-- regr <- lm(DOrange1 ~ mgCH4, data = subset(only16, season == "growing")); summary(regr) -->
 <!-- ``` -->
+
+```{r test, echo = F}
+#CH4sub <- peat6_all[!is.na(peat6_all$wm), ]
+
+by_year <- peat6_daily %>%
+  filter(year > 2011 & year < 2018) %>%
+  group_by(year) %>%
+  select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD) %>%
+  nest()
+
+net_model <- function(df) {
+  train(mgCH4 ~ ., data = df, method = "glmnet",
+                 trControl = trainControl(method = "cv"),
+                 preProcess = c("center", "scale", "medianImpute", "BoxCox"),
+                 tuneGrid = expand.grid(.alpha = 1, .lambda = 0.1),
+                 na.action = na.pass)
+}
+
+# hh_model <- function(df) {
+#   train(wm ~ gpp_ANNnight + wq_gf + wt_gf + TA.y + VPD + ustar + PRECIP + WT + WD,
+#         data = df,
+#         method = "glmnet",
+#         preProcess = c("center", "scale", "medianImpute", "BoxCox"),
+#         na.action = na.pass)
+# }
+
+# subset <- peat6_daily %>%
+#   ungroup() %>%
+#   select(mgCH4, gGEP, gER, mET, H, Tair, Tw, mVPD, u., Rain, WTD) %>%
+#   na.omit()
+
+# #caret approach
+# glm_reg <- train(wm ~ gpp_ANNnight + wq_gf + wt_gf + TA.y + VPD + ustar + PRECIP + WT + WD, 
+#                  data = CH4sub, method = "glmnet",
+#                  trControl = trainControl(method = "cv"),
+#                  preProcess = c("center", "scale", "medianImpute"),
+#                  #tuneGrid = expand.grid(.alpha = 1, .lambda = c(0, 0.001, 0.1, 1, 5, 10, 20, 50)),
+#                  na.action = na.pass)
+
+by_year <- by_year %>%
+  mutate(model = map(data, net_model),
+         Imp = map(model, varImp))
+
+impo_list <- by_year$Imp
+
+a <- impo_list[[1]]$importance
+a$year <- 2012
+a$vars <- rownames(a)
+
+b <- impo_list[[2]]$importance
+b$year <- 2013
+b$vars <- rownames(b)
+
+c <- impo_list[[3]]$importance
+c$year <- 2014
+c$vars <- rownames(c)
+
+d <- impo_list[[4]]$importance
+d$year <- 2015
+d$vars <- rownames(d)
+
+e <- impo_list[[5]]$importance
+e$year <- 2016
+e$vars <- rownames(e)
+
+f <- impo_list[[6]]$importance
+f$year <- 2017
+f$vars <- rownames(f)
+
+all_now <- do.call("rbind", list(a, b, c, d, e, f))
+
+ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
+  #stat_smooth(se=F) +
+  geom_point(size = 2) +
+  geom_line()
+```
 
 # Discussion
 
