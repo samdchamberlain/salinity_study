@@ -244,7 +244,7 @@ b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=as.Date(dateti
 grid.arrange(a, b, ncol=1)
 ```
 
-```{r tr_GPP_to_CH4, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly GEP to F~CH4~ and (bottom panel) T~a~ to F~CH4~ over the growing season during years of low salinity (2012-2013) and high salinity (2015-2016). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Other lines represented ***T*** at various lags of GEP or T~a~ and color demonstrates mean conductivity (mS) during the respective year. Years 2014 and 2017 are omitted from analysis because other disturbance events affected wetlands processes and confound entropy analyses." fig.height=4, fig.width=7.5, dpi=600}
+```{r tr_GPP_to_CH4, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly GEP to F~CH4~ and (bottom panel) T~a~ to F~CH4~ over the growing season during years of low salinity (2012-2013) and high salinity (2015-2016). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Other lines represented ***T*** at various lags of GEP or T~a~ and color demonstrates mean conductivity (mS) during the respective year. Years 2014 and 2017 are omitted from analysis because other disturbance events affected wetlands processes and confound entropy analyses.", fig.height=4, fig.width=7.5, dpi=600}
 source("R/TR_functions.R")
 source("R/transformations.R")
 
