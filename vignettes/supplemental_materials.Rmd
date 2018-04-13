@@ -45,6 +45,34 @@ library(ggpubr)
 source("R/peat6_processing.R") #wetland experiencing salinity rise
 ```
 
+```{r bias_by_samples, fig.height= 5, fig.width=6}
+#shuffle data for comparison w/ monthly gap magnitude retained
+
+#create a growing month stamp
+peat6_all$month <- month(peat6_all$datetime)
+peat6_all$m_yr <- paste(peat6_all$year, peat6_all$month, sep = "")
+
+#shuffle data for comparison w/ monthly gap magnitude retained
+peat6_all <- peat6_all %>%
+  group_by(month) %>%
+  mutate(Ta_shuf = sample(TA.x, length(TA.x), replace = F),
+         wm_shuf = sample(wm, length(wm), replace = F))
+
+#create data list by month
+by_month <- peat6_all %>%
+  filter(year > 2011 & year < 2018) %>%
+  group_by(m_yr) %>%
+  nest()
+
+clipped_monthly$T_shuf <- mi_timeseries(Ta_shuf, wm_shuf, data_list = by_month)
+
+ggplot(clipped_monthly, aes(x = CH4_obs, y = T_shuf)) +
+  stat_smooth(se = F) +
+  geom_point(color = "red") +
+  ylab(expression(bolditalic(MI)~"("~T[air]~","~F[CH4]~")")) +
+  xlab("Total methane flux observations")
+```
+
 ```{r causality_checks, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly T~a~ to F~CH4~ and (bottom panel) F~CH4~ to T~a~ over multiple growing seasons. The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on ~a priori~ knowledge only changes in T~a~ should induce changes in F~CH4~, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
 source("R/TR_functions.R")
 source("R/transformations.R")
