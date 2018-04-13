@@ -4,7 +4,7 @@
 #' @importFrom dplyr lag
 
 #calculate confidence bound for Mutual Information statistical significance
-mi_confidence <- function(x, y, alpha = 0.05, runs = 1000, bins = 10, normalize = T) {
+mi_confidence <- function(x, y, alpha = 0.05, runs = 100, bins = 10, normalize = T) {
   
   mc_out <- rep(NA, runs) #vector for statistic output
   
@@ -24,7 +24,7 @@ mi_confidence <- function(x, y, alpha = 0.05, runs = 1000, bins = 10, normalize 
 }
 
 #calculate confidence bound for Transfer Entropy statistical significance
-tr_confidence <- function(x, y, xlag, ylag = 1, alpha, runs = 1000, bins = 10, normalize = T) {
+tr_confidence <- function(x, y, xlag, ylag = 1, alpha, runs = 25, bins = 10, normalize = T) {
   
   mc_out <- rep(NA, runs) #vector for statistic output
   
@@ -34,9 +34,9 @@ tr_confidence <- function(x, y, xlag, ylag = 1, alpha, runs = 1000, bins = 10, n
   }
   
   if (alpha == 0.01) {
-    limit <- mean(mc_out) + 2.36*sd(mc_out)
+    limit <- mean(mc_out) + 2.49*sd(mc_out)
   } else if (alpha == 0.05) {
-    limit <- mean(mc_out) + 1.66*sd(mc_out)
+    limit <- mean(mc_out) + 1.71*sd(mc_out)
   } else {
     return("This threshold is not supported")
   }

@@ -182,15 +182,6 @@ biplot(test)
 source("R/MI_functions.R")
 source("R/signficance_tests.R")
 
-# # test multiple binning strategies
-# bin_v = seq(4, 22, by = 2)
-# par(mfrow=c(2, 5))
-# 
-# for (i in bin_v) {
-#   a <- lag_mi(peat6_all$ustar, peat6_all$wm, lags = 48, bins = i)
-#   plot(a)
-# }
-
 #create a growing month stamp
 peat6_all$month <- month(peat6_all$datetime)
 peat6_all$m_yr <- paste(peat6_all$year, peat6_all$month, sep = "")
@@ -212,18 +203,11 @@ by_month <- peat6_all %>%
 clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
 clipped_monthly$date <- as.Date(clipped_monthly$datetime)
 clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month)
-clipped_monthly$ET_CH4_mi <- mi_timeseries(H_shuf, wm_shuf, data_list = by_month)
 clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
 
 # Monte Carlo significance thresholds (dont run everytime as they take a while)
-sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 100, alpha = 0.01)
-# mean sig_gpp across all months at p < 0.01: 0.034
-
-sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 100, alpha = 0.01)
-# mean sig_Tair across all months at p < 0.01: 0.042
-
-# sig_H <- conf_series(H_gf, wm, data_list = by_month, runs = 1000, alpha = 0.01)
-# # mean sig_Tair across all months at p < 0.01: 0.039
+sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 100, alpha = 0.05)
+sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 100, alpha = 0.05)
 
 # clipped_monthly$Tair_ma <- na.ma(ma(clipped_monthly$Tair_ma, 3))
 # clipped_monthly$GPP_ma <- na.ma(ma(clipped_monthly$GPP_ma, 3))
@@ -276,16 +260,16 @@ by_year <- anom_data %>%
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
 # for GPP -> CH4
 tr_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "observed", 
-                           lags = 120, bins = 10, normalize = T)
+                           lags = 72, bins = 10, normalize = T)
 
 mc_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 5, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 25, alpha = 0.05, normalize = T)
 # for TA -> CH4
 tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "observed", 
-                           lags = 120, bins = 10, normalize = T)
+                           lags = 72, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 5, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 25, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 gpp.wm_df <- tidy_list(tr_wm_gpp); gpp.wm_shuf <- tidy_list(mc_wm_gpp)
@@ -304,7 +288,7 @@ a <- ggplot() +
   geom_line(data = gpp.wm_df, aes(x = hour, y = tr, color = `Cond. (mS)`)) +
   geom_line(data = gpp.wm_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
-  scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
+  scale_x_continuous(breaks = seq(0, 48, by = 6)) +
   xlab("") + ylab(expression(bolditalic(T)~"("~GEP %->% F[CH4]~")")) +
   theme(legend.position = "none")
 
@@ -312,7 +296,7 @@ b <- ggplot() +
   geom_line(data = ta.wm_df, aes(x = hour, y = tr, color = `Cond. (mS)`)) +
   geom_line(data = ta.wm_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
-  scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
+  scale_x_continuous(breaks = seq(0, 48, by = 6)) +
   xlab("Lag (hours)") + ylab(expression(bolditalic(T)~"("~T[a] %->% F[CH4]~")")) +
   theme(legend.margin = margin(0, 0, 0, 0),
         legend.position=c(.31, .7), legend.key.size =  unit(0.12, "in"),
@@ -332,6 +316,12 @@ grid.arrange(iA, iB, ncol=1)
 
 
 ```{r bias_by_samples, fig.height= 5, fig.width=6}
+#shuffle data for comparison w/ monthly gap magnitude retained
+peat6_all <- peat6_all %>%
+  group_by(month) %>%
+  mutate(H_shuf = sample(TA.x, length(TA.x), replace = F),
+         G_shuf = sample(gpp_ANNnight, length(gpp_ANNnight), replace = F),
+         wm_shuf = sample(wm, length(wm), replace = F))
 
 clipped_monthly$T_shuf <- mi_timeseries(H_shuf, wm_shuf, data_list = by_month)
 clipped_monthly$G_shuf <- mi_timeseries(G_shuf, wm_shuf, data_list = by_month)

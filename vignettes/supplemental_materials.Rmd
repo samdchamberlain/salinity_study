@@ -45,7 +45,7 @@ library(ggpubr)
 source("R/peat6_processing.R") #wetland experiencing salinity rise
 ```
 
-```{r causality_checks, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly T~a~ to F~CH4~ and (bottom panel) F~CH4~ to T~a~ over multiple growing seasons. The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on ~a priori~ knowledge only changes in T~a~ should induce changes in F~CH4~, but not vice versa." fig.height=4, fig.width=7.5, dpi=600}
+```{r causality_checks, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly T~a~ to F~CH4~ and (bottom panel) F~CH4~ to T~a~ over multiple growing seasons. The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on ~a priori~ knowledge only changes in T~a~ should induce changes in F~CH4~, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
 source("R/TR_functions.R")
 source("R/transformations.R")
 
@@ -72,16 +72,16 @@ by_year <- anom_data %>%
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
 # for TA -> CH4
 tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "observed", 
-                           lags = 120, bins = 10, normalize = T)
+                           lags = 72, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 5, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 25, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "observed", 
-                           lags = 120, bins = 10, normalize = T)
+                           lags = 72, bins = 10, normalize = T)
 
 mc_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 5, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 25, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.ta_df <- tidy_list(tr_ta_wm); wm.ta_shuf <- tidy_list(mc_ta_wm)
@@ -91,14 +91,16 @@ a <- ggplot() +
   geom_line(data = ta.wm_df, aes(x = hour, y = tr)) +
   geom_line(data = ta.wm_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
-  scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
+  scale_x_continuous(breaks = seq(0, 48, by = 6)) +
+  scale_y_continuous(limits = c(0, 0.04)) +
   ylab(expression(bolditalic(T)~"("~T[a] %->% F[CH4]~")"))
 
 b <- ggplot() +
   geom_line(data = wm.ta_df, aes(x = hour, y = tr)) +
   geom_line(data = wm.ta_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
-  scale_x_continuous(limits = c(0, 60), breaks = c(0, 12, 24, 36, 48, 60)) +
+  scale_x_continuous(breaks = seq(0, 48, by = 6)) +
+  scale_y_continuous(limits = c(0, 0.04)) +
   xlab("Lag (hours)")  + ylab(expression(bolditalic(T)~"("~F[CH4] %->% T[a]~")"))
 
 #Multiple plots aligned
