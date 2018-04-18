@@ -45,7 +45,7 @@ library(ggpubr)
 source("R/peat6_processing.R") #wetland experiencing salinity rise
 ```
 
-```{r bias_by_samples, fig.height= 5, fig.width=6}
+```{r fig1, fig.height= 5, fig.width=6}
 #shuffle data for comparison w/ monthly gap magnitude retained
 
 #create a growing month stamp
@@ -71,6 +71,52 @@ ggplot(clipped_monthly, aes(x = CH4_obs, y = T_shuf)) +
   geom_point(color = "red") +
   ylab(expression(bolditalic(MI)~"("~T[air]~","~F[CH4]~")")) +
   xlab("Total methane flux observations")
+```
+
+```{r fig2, fig.height = 5, fig.width = 7}
+time_series <- theme_bw() +
+  theme(panel.grid.minor=element_blank(), panel.grid.major.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_text(size=9))
+
+both_sites <- subset(rbind(peat19_daily, peat6_daily), year > 2011)
+both_sites$date <- as.Date(both_sites$datetime)
+
+a <- ggplot(both_sites, aes(x=date, y=mgCH4, color=site)) +
+  geom_line(size = 0.5) + 
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  time_series +
+  theme(legend.title=element_blank(), legend.margin = margin(0, 0, 0, 0),
+        legend.position=c(.85, .80),
+        legend.key.size =  unit(0.2, "in"), legend.text = element_text(size=8),
+        legend.background = element_rect(fill = "transparent"))
+
+b <- ggplot(both_sites, aes(x=date, y=gGEP, color=site)) +
+  geom_line(size = 0.5) +
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  time_series + theme(legend.position = "none")
+
+c <- ggplot(both_sites, aes(x=date, y=gCO2, color=site)) +
+  geom_line(size = 0.5) +
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  time_series + theme(legend.position = "none")
+
+d <- ggplot(both_sites, aes(x=date, y=Cond, color=site)) +
+  geom_line() + 
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  time_series + theme(legend.position = "none")
+
+#Multiple plots aligned
+iA <- ggplotGrob(a)
+iB <- ggplotGrob(b)
+iC <- ggplotGrob(c)
+iD <- ggplotGrob(d)
+
+
+maxWidth = grid::unit.pmax(iA$widths[2:5], iB$widths[2:5], iC$widths[2:5], iD$widths[2:5])
+iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth); 
+iC$widths[2:5] <- as.list(maxWidth); iD$widths[2:5] <- as.list(maxWidth); 
+
+grid.arrange(iA, iB, iC, iD, ncol=1)
 ```
 
 ```{r causality_checks, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly T~a~ to F~CH4~ and (bottom panel) F~CH4~ to T~a~ over multiple growing seasons. The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on ~a priori~ knowledge only changes in T~a~ should induce changes in F~CH4~, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}

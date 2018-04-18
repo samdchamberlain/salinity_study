@@ -5,11 +5,13 @@
 #' @import dplyr
 #' @importFrom lubridate month
 #' @importFrom dplyr "%>%"
+#' @importFrom wq ec2pss
 
 # load eddy flux and met dataset
 load("data/peat19_all.Rdata")
 peat19_all$dday <- floor(peat19_all$decday)
-peat19_all$site <- "Mature"
+peat19_all$site <- "Baseline (mature)"
+peat19_all$sal <- ec2pss(peat19_all$conductivity, peat19_all$TW_8cm)
 
 #Simple average of daily fluxes for gapfilled values
 daily <- peat19_all %>%
@@ -38,6 +40,7 @@ daily <- peat19_all %>%
             Rain = 1,
             WTD = mean(WT, na.rm=T),    #water table (m from surface)
             Cond = mean(conductivity, na.rm=T), #conductivity (mS)
+            Sal = mean(sal, na.rm=T),          #salinity (psu)
             t_obs = length(wc_gf),      # total observations in the day
             year = round(median(year))) %>%
   filter(t_obs == 48 & year > 2012)  #remove incomplete days at either end of time series and year with water table drop issues
@@ -59,7 +62,7 @@ monthly <- daily %>%
             mER = mean(gER),
             mGEP = mean(gGEP),
             mCond = mean(Cond, na.rm=T),
-            #mSal = mean(Sal, na.rm=T),
+            mSal = mean(Sal, na.rm=T),
             datetime = mean(datetime),
             days = sum(!is.na(mgCH4)),
             CH4_obs = sum(m_obs),

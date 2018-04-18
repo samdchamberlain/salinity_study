@@ -5,10 +5,13 @@
 #' @import dplyr
 #' @importFrom lubridate month
 #' @importFrom dplyr "%>%"
+#' @importFrom wq ec2pss
 
 # load eddy flux and met dataset
 load("data/peat6_all.Rdata")
 peat6_all$dday <- floor(peat6_all$decday)
+peat6_all$sal <- ec2pss(peat6_all$Cond, peat6_all$TW_TULE_10cm)
+peat6_all$site <- 'Salinity rise'
 
 #Simple average of daily fluxes for gapfilled values
 daily <- peat6_all %>%
@@ -37,14 +40,15 @@ daily <- peat6_all %>%
             Rain = sum(PRECIP, na.rm=T),       #rain (mm)
             WTD = mean(WT, na.rm=T),           #water table (m from surface)
             Cond = mean(Cond, na.rm=T),        #conductivity (mS)
-            DOrange1 = max(DO_mid, na.rm=T) - min(DO_mid, na.rm=T),
-            DOmid = mean(DO_mid, na.rm=T),
-            DOrange2 = max(DO_deep, na.rm=T) - min(DO_deep, na.rm=T),
-            DOdiff = mean(DO_mid, na.rm=T) - mean(DO_deep, na.rm=T),
-            COrangeS = max(wCO2_open_surface_ppm, na.rm=T) - min(wCO2_open_surface_ppm, na.rm=T),
-            COrangeM = max(wCO2_open_mid_ppm, na.rm=T) - min(wCO2_open_mid_ppm, na.rm=T),
-            COrangeD = max(wCO2_open_deep_ppm, na.rm=T) - min(wCO2_open_deep_ppm, na.rm=T),
-            COdiff = mean(wCO2_open_surface_ppm, na.rm=T) - mean(wCO2_open_deep_ppm, na.rm=T),
+            Sal = mean(sal, na.rm=T),          #salinity (psu)
+            # DOrange1 = max(DO_mid, na.rm=T) - min(DO_mid, na.rm=T),
+            # DOmid = mean(DO_mid, na.rm=T),
+            # DOrange2 = max(DO_deep, na.rm=T) - min(DO_deep, na.rm=T),
+            # DOdiff = mean(DO_mid, na.rm=T) - mean(DO_deep, na.rm=T),
+            # COrangeS = max(wCO2_open_surface_ppm, na.rm=T) - min(wCO2_open_surface_ppm, na.rm=T),
+            # COrangeM = max(wCO2_open_mid_ppm, na.rm=T) - min(wCO2_open_mid_ppm, na.rm=T),
+            # COrangeD = max(wCO2_open_deep_ppm, na.rm=T) - min(wCO2_open_deep_ppm, na.rm=T),
+            # COdiff = mean(wCO2_open_surface_ppm, na.rm=T) - mean(wCO2_open_deep_ppm, na.rm=T),
             t_obs = length(wc_gf),      # total observations in the day
             year = round(median(year))) %>%
   filter(year > 2010 & t_obs == 48) #cut pre-wetland measures, and incomplete days at ends of time series
@@ -68,7 +72,7 @@ monthly <- daily %>%
             mER = mean(gER),
             mGEP = mean(gGEP),
             mCond = mean(Cond, na.rm=T),
-            #mSal = mean(Sal, na.rm=T),
+            mSal = mean(Sal, na.rm=T),
             datetime = mean(datetime),
             days = sum(!is.na(mgCH4)),
             CH4_obs = sum(m_obs),

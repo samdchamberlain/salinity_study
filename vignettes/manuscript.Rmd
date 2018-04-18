@@ -4,9 +4,9 @@ author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J S
   Joseph G Verfaillie^1^, and Dennis D Baldocchi^1^
 date: '`r Sys.Date()`'
 output:
-  html_document: default
-  pdf_document: default
   word_document: default
+  pdf_document: default
+  html_document: default
 link-citations: yes
 header-includes:
 - \usepackage{setspace}
@@ -38,12 +38,11 @@ library(lubridate)
 library(gridExtra)
 library(scales)
 library(zoo)
-library(ggpubr)
 library(caret)
-library(modelr)
 library(forecast)
 library(entropy)
 library(stringr)
+library(wq)
 ```
 
 # Abstract
@@ -63,144 +62,36 @@ We measured ecosystem-scale fluxes of CO~2~, CH~4~, water (H~2~O), and energy fo
 
 Fluxes were measured continuously by eddy covariance, where fluxes were intergrated over half-hour periods from the covariance of vertical wind velocity using a 3-dimensional sonic anemometer (Gill WindMaster; Gill Instruments Ltd, Lymington, Hampshire, England) and gas concentrations (CO~2~, CH~4~, and H~2~O) using open-path infrared gas analyzers (LI-7500 & LI-7700; LI-COR, Lincoln, NE, USA) measured at 20 Hz frequency. Standardized flux corrections and quality control were applied, including high-frequency data despiking, 2-D coordinate rotations, density corrections, and site-specific friction velocity (*u$^\ast$*) filtering. Data gaps in all fluxes were filled using artificial neural networks (ANNs), and net ecosystem exchange of CO~2~ (NEE) was partitioned into ER and GEP by training an ANN on nighttime CO~2~ fluxes and using this ANN to predict ER at all times. GEP was then estimated as the difference between NEE and ER. Site instrumention and descriptions are described in greater detail in [@eichelmann_effect_2018], quality control procedures are described in more detail in @knox_agricultural_2015 and @chamberlain_evaluation_2017, and gap-filling and partitioning @baldocchi_does_2015. The partitioning methods perform well against indenpendent soil respiration verfication methods [@oikawa_revisiting_2017]. We also measured air temperature, conductivity, among a host of other auxillary variables described in @eichelmann_effect_2018. We measured water conductivity using stainless-steel electrodes (CS547A-L; Campbell Scientific, Logan, UT, USA) and air temperature using shielded and aspirated thermistor and capacitance sensors (HMP45; Viasala, Vantaa, Finland).
 
-## Couplings and Controls of Ecosystem
-We used *MI* to identify coupling strengths and *TE* to identify causal interactions between variables and the time scales at which they occur. Mutual information is used to identify the amount of information shared between two variables *X* and *Y*, and can be described using the following equation:
+## Information Theory Methods
+We used *MI* to identify coupling strengths and *TE* to identify causal interactions between variables and the time scales at which they occur. Mutual information is used to identify the amount of information shared between two variables *X* and *Y*, or the reduction of uncertainty given knowledge of another variable, and can be described using the following equation:
 $$I_{X,Y}=H_X+H_Y-H_{X,Y}$$
 where *H~X~* and *H~Y~* are marginal Shannon entropies of each variable, and *H~Y,X~* is the joint Shannon entropy of *X* and *Y*. Marginal entropies are calculated from the probability distributions of a variable *Y* as follows:
 $$H_Y=-\sum_{y_t}p(y_t)log_2p(y_t)$$
 And joint entropies are calculated from the probability distributions of variables *X* and *Y* as follows:
 $$H_{X,Y}=-\sum_{x_t}\sum_{y_t}p(x_t,y_t)log_2p(x_t,y_t)$$
-where *x~t~* and *y~t~* are states within the overall distribution of *X* and *Y*.
+where *x~t~* and *y~t~* are states within the overall distribution of *X* and *Y*. We calculated *MI* for one month blocks across the entire flux time series to quantify the change in couplings between flux variables across the salinity disturbance event. For each month, continuous variables were discretized to 10 bins of equivalent length across the range of each variable. Mutual information was then calculated for each variable pair of interest (*Ta*,*F~CH4~* & *GEP*,*F~CH4~*) and a significance threshold was determined via 100 Monte Carlo reshufflings of the independent variable (*Ta* or *GEP*). Because the reshuffled values (*MI'*) varies with the number of CH~4~ flux observations per month (see Supporting Information) we present *MI-MI'*, similar to @larsen_disrupted_2017, such that any values greater than zero are signficant couplings.
 
-While *MI* identifies coupling strength [@sturtevant_identifying_2016; @chamberlain_soil_2018] between variables it does not ascribe directionality, or causality, to the relationship. Transfer entropy is used to ascribe causality between variables and quantifies the extent to which knowledge of a variables *X* reduced the uncertainty of the present state of *Y* given knowledge of the history of *Y* itself. If a value of *TE* is above some signficance threshold (described below) it is deduced that *X* provides information to the current state of *Y* [@@ruddell_ecohydrologic_2009]. Transfer entropy can also be described by joint and marginal entropies incorporating time lags as follows [@knuth_revealing_2013; @ruddell_ecohydrologic_2009]:
+While *MI* identifies coupling strength [@sturtevant_identifying_2016; @chamberlain_soil_2018] between variables it does not ascribe directionality to the relationship. Transfer entropy quantifies directional information transfer, or more technically, the extent to which knowledge of a variables *X* reduced the uncertainty of the present state of *Y* given knowledge of the history of *Y* itself. If a value of *TE* is above some signficance threshold (described below) it is deduced that information flows from *X* to the current state of *Y* [@ruddell_ecohydrologic_2009]. Transfer entropy can also be described by joint and marginal entropies incorporating time lags as follows [@knuth_revealing_2013; @ruddell_ecohydrologic_2009]:
 $$T(X>Y, \tau) = H(X_{t-\tau}, Y_{t-1}) + H(Y_{t}, Y_{t-1}) - H(Y_{t-1}) + H(X_{t-\tau}, Y_{t}, Y_{t-1})$$
-Following @ruddell_ecohydrologic_2009
+In the above formulation, we assume the immediate history of *Y* (t-1; i.e. the preceding half-hour in eddy flux time series) contributes the most information to the current state of *Y* and we calculate *TE* across multiple lags of *X* to identify the critical timescale of interactions between variables [@ruddell_ecohydrologic_2009; @larsen_disrupted_2017]. A more in depth description of applying *TE* and *MI* to ecosystem-atmosphere flux time series can be found in @ruddell_ecohydrologic_2009, and we follow the basic protocols outlined in this work. This includes building discrete probability distributions using 10 bins for each variable as described above, transforming variables prior to *TE* calculations using a 5-day anomaly filter, and again establishing significance thresholds using Monte Carlo reshuffling of the flux time series. We calculate *TE* for information flow from *Ta* to *F~CH4~* and *GEP* to *F~CH4~*, and did so across multiple lags of the independent variable up to 36 hours to understand the timescale of interactions. Similarly, we calculated significance thresholds across each lag and due to computational demands used 25 reshufflings, rather than 100, when calculating *TE*. All information theory calculations were conducted using R 3.3.2 [@r_citation] with the 'entropy' package and home built functions to calculate *TE* and significance thresholds available online with this manuscript at https://github.com/samdchamberlain/salinity_study.
 
-
+## Determining Salinity Impacts on Annual GHG Fluxes
+To quantify the reduction in *GEP* and *F~CH4~* due to salinity effects, we trained a random forest model on fluxes during years prior to the salinity rise when the wetland was fully vegetated (2012-2014) using common meteorological variables and drivers of each flux. For *GEP*, this included *Ta*, photosynthetically active radiation (*PAR*), vapor pressure deficit (*VPD*), air pressure (*PA*), friction velocity (*u$^\ast$*), and water table depth (*WTD*), and for CH~4~ flux this included *GEP*, *Ta*, *VPD*, *PA*, *u$^\ast$*, and *WTD*. Random forests are an ensemble tree-based method where numerous trees are constructed using bootstrap samples from the training dataset, and the trees are averaged to generate a final prediction. For each tree, a random subset of the predictors (*m~try~*) are chosen at each tree split to reduce overfitting [@breiman_random_2001]. We used an ensemble of 500 trees and the *m~try~* value (ranging from 2-4) was chosen by using the model formulation with the lowest root mean squared error following five-fold cross-validation [@kuhn_applied_2013]. Any missing values in the predictor data were imputed using medians. We then used the tuned random forest model to generate predictions of CH~4~ flux and *GEP* during the high salinity years (2015-2016) to quantify the overall effect of salinity on these fluxes. We were careful to only include predicitor variables that were not influenced by salinity in the model tuning. The random forest was fit using the 'caret' [@caret] and 'randomForest' [@randomForest] packages. All additional data processing, statistical analysis, and visualization were conducted using the 'tidyverse' [@tidyverse], 'zoo' [@zoo], 'gridExtra' [@gridExtra], 'lubridate' [@lubridate], and 'scales' [@scales] packages. Annual GHG budgets were calculated using the 45x 100-year sustained-flux global warming potential for CH~4~ presented in @neubauer_moving_2015. This manuscript is reproducible via R Markdown, and its code can be found at https://github.com/samdchamberlain/salinity_study.
 
 # Results
-## Salinity effects
 ```{r load_process}
 #load and process wetland sites into half-hourly, daily, and annual sums
 source("R/peat6_processing.R") #wetland experiencing salinity rise
 source("R/peat19_processing.R") #baseline mature wetland w/o salinity rise
 ```
 
-```{r fig1, fig.height = 8, fig.width = 7}
-peat6_sub <- select(peat6_daily, -starts_with("DO"), -starts_with("CO", ignore.case = F))
+We observed a substantial increase in salinity over the course of our observation period. Salinity levels were relatively stable from 2012 through 2013, began to rise through 2014, peaked in 2017, and reduced rapidly in 2017 when site managers flushed the wetland system with freshwater (Fig. 1). Coupling between driver variables (*GEP* and *Ta*) and *F~CH4~* were similar in the pre-disturbance period (2012 & 2014) where maximum *MI* was observed during the growing season and were of similar magnitude for *MI~Ta,FCH4~* and *MI~GEP,FCH4~* (Fig. 1). During 2014, *MI* did not display a similar seasonality, presumabely due to a large-scale insect outbreak that affected the wetland, though at late season increase in *MI* was still observed for *MI~Ta,FCH4~* and *MI~GEP,FCH4~*. During 2015 and 2016, the peak of the salinity disturbance, we observed a strong decoupling between *GEP* and *F~CH4~*, as well as a strengthening in the coupling between *Ta* and *F~CH4~* compared with the previous years (Fig. 1). The decoupling of *GEP* and *F~CH4~* across 2015 and 2016 is not driven by a crash in the *GEP* flux magnitude, as *GEP* magnitudes within the season were similar to previous years (Supporting Information; Fig. S2). During the managed flushing period of 2017 when salinity levels dropped steeply, couplings between *GEP* and *F~CH4~* began to recover but were highly variable throughout the season as salinity changed (Fig. 1).
 
-both_sites <- rbind(peat19_daily, peat6_sub)
-
-a <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=mgCH4, color=site)) +
-  geom_point(size = 0.5)
-
-b <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=gCO2, color=site)) +
-  geom_point(size = 0.5)
-
-c <- ggplot(subset(both_sites, year > 2013)) +
-  geom_line(aes(x=datetime, y=gER, color=site)) #+
-  #geom_line(aes(x=datetime, y=gGEP, color=site))
-
-d <- ggplot(subset(both_sites, year > 2013), aes(x=datetime, y=Tair, color=site)) +
-  geom_line()
-
-grid.arrange(a, b, c, d, ncol=1)
-```
-
-```{r fig2, fig.height=7, fig.width=3.5}
-#Average monthly fluxes prior to salinity peak in 2016 
-MBav <- subset(peat6_monthly, year > 2012 & year < 2016) %>%
-  group_by(month) %>%
-  summarise(CH4 = mean(gCH4),
-            sdCH4 = 1.96*sd(gCH4)/sqrt(length(gCH4)),
-            NEE = mean(gNEE),
-            sdNEE = 1.96*sd(gNEE)/sqrt(length(gNEE)),
-            ER = mean(gER),
-            sdER = 1.96*sd(gER)/sqrt(length(gER)),
-            GEP = mean(gGEP),
-            sdGEP = 1.96*sd(gGEP)/sqrt(length(gGEP)),
-            n = length(gCH4))
-
-#Mean conductivity on Twitchell Island without salinity rise
-Tw_av <- rbind(peat19_monthly, peat6_monthly) %>%
-  group_by(month) %>%
-  summarise(cond = mean(mCond, na.rm=T),
-            sd.cond = 1.96*sd(mCond, na.rm=T)/sqrt(length(mCond)))
-
-
-# plot theme
-time_series <- theme_bw() +
-  theme(panel.grid.minor=element_blank(), panel.grid.major.x = element_blank(),
-        axis.title.x = element_blank(), axis.title.y = element_text(size=9))
-
-# four panels
-a <- ggplot() +
-  geom_ribbon(data=MBav, aes(x=month, ymin=CH4-sdCH4, ymax=CH4+sdCH4), fill="light grey") +
-  geom_line(data=MBav, aes(x=month, y=CH4)) +
-  geom_line(data=subset(peat6_monthly, year > 2014), aes(x=month, y=gCH4, color=factor(year))) +
-  scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
-  ylab(expression(F[CH4]~" (g C"~m^{-2}~mo^{-1}~")")) + 
-  annotate("text", x=Inf, y=Inf, label="a ", vjust=1, hjust=1, fontface = "bold") +
-  time_series + 
-  theme(legend.title=element_blank(), legend.margin = margin(0, 0, 0, 0),
-        legend.text = element_text(size=8), legend.position=c(.15, .75),
-        legend.background = element_rect(fill = "transparent"))
-
-b <- ggplot() +
-  geom_ribbon(data=MBav, aes(x=month, ymin=ER-sdER, ymax=ER+sdER), fill="light grey") +
-  geom_line(data=MBav, aes(x=month, y=ER)) +
-  geom_line(data=subset(peat6_monthly, year > 2014), aes(x=month, y=gER, color=factor(year))) +
-  ylab(expression("ER (g C"~m^{-2}~mo^{-1}~")")) + 
-  annotate("text", x=Inf, y=Inf, label="b ", vjust=1, hjust=1,fontface = "bold") +
-  scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
-  time_series + theme(legend.position = "none")
-
-c <- ggplot() +
-  geom_ribbon(data=MBav, aes(x=month, ymin=GEP-sdGEP, ymax=GEP+sdGEP), fill="light grey") +
-  geom_line(data=MBav, aes(x=month, y=GEP)) +
-  geom_line(data=subset(peat6_monthly, year > 2014), aes(x=month, y=gGEP, color=factor(year))) +
-  ylab(expression("GEP (g C"~m^{-2}~mo^{-1}~")")) + 
-  annotate("text", x=Inf, y=Inf, label="c ", vjust=1, hjust=1, fontface = "bold") +
-  scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
-  time_series + theme(legend.position = "none")
-
-d <- ggplot() +
-  geom_ribbon(data=Tw_av, aes(x=month, ymin=cond-sd.cond, ymax=cond+sd.cond), fill="light grey") +
-  geom_line(data=Tw_av, aes(x=month, y=cond)) +
-  geom_line(data=subset(peat6_monthly, year > 2014), aes(x=month, y=mCond, color=factor(year))) +
-  ylab("Conductivity (mS)")  + 
-  annotate("text", x=Inf, y=Inf, label="d ", vjust=1, hjust=1, fontface = "bold") +
-  scale_x_continuous(name="Month", breaks=seq(0,12,2)) +
-  time_series + theme(legend.position = "none")
-
-#Multiple plots aligned
-g1 <- ggplotGrob(a)
-g2 <- ggplotGrob(b)
-g3 <- ggplotGrob(c)
-g4 <- ggplotGrob(d)
-
-grid.arrange(g1, g2, g3, g4, ncol = 1)
-```
-
-## Connectivity across time
-
-```{r pca, echo = F}
-subset <- peat6_daily %>%
-  ungroup() %>%
-  select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD, Ts, Tw, PA, gER, Cond)
-
-pca_test <- preProcess(subset, method = c("medianImpute"))
-out_sub <- predict(pca_test, subset)
-
-test <- prcomp(out_sub, scale. = T)
-
-biplot(test)
-```
-
-```{r entropy_analysis_peat, fig.cap="Monthly relative mutual information (MI; top panel) shared between GEP and F~CH4~ (green line) as well as T~a~ and F~CH4~ (red line). All MI values are corrected for bias due to varied sample size using Monte Carlo reshuffling of time series such that MI = 0 represents the threshold of statistical significance (*P* < 0.05). Bottom panel displays daily mean water column conductivity (mS).", fig.width=7, fig.height=5, dpi=600}
+```{r fig1, fig.cap="Monthly relative mutual information (*MI*; top panel) shared between GEP and F~CH4~ (green line) as well as T~a~ and F~CH4~ (red line) at the wetland that experienced salinization. All *MI* values are corrected using 100 Monte Carlo reshufflings of time series, such that *MI* > 0 are statistically significant at *P* < 0.05. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
 source("R/MI_functions.R")
 source("R/signficance_tests.R")
 
+## Processing for high salinity wetland
 #create a growing month stamp
 peat6_all$month <- month(peat6_all$datetime)
 peat6_all$m_yr <- paste(peat6_all$year, peat6_all$month, sep = "")
@@ -213,6 +104,63 @@ by_month <- peat6_all %>%
 
 #plot that needs to be dealt with later
 clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
+clipped_monthly$date <- as.Date(clipped_monthly$datetime)
+clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month)
+clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
+
+# Monte Carlo significance thresholds (dont run everytime as they take a while)
+sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 100, alpha = 0.05)
+sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 100, alpha = 0.05)
+
+# Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.01
+clipped_monthly$TairMI_corrected <- clipped_monthly$Tair_CH4_mi - sig_Tair
+clipped_monthly$gppMI_corrected <- clipped_monthly$GPP_CH4_mi - sig_gpp
+
+a <- ggplot(clipped_monthly) +
+  geom_point(aes(x = date, y = TairMI_corrected), color = "red", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(TairMI_corrected, 3)), color = "red", size = 1) +
+  geom_point(aes(x = date, y = gppMI_corrected), color = "dark green", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(gppMI_corrected, 3)), color = "dark green", size = 1) +  
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  scale_y_continuous(limits = c(0, 0.3)) +
+  ylab(expression(bolditalic(MI)~"(x,"~F[CH4]~")")) + xlab("") + ggtitle("Rising salinity wetland") +
+  theme_bw()
+
+b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=as.Date(datetime), y=Sal)) +
+  geom_line(color = "blue") +
+  scale_y_continuous(limits = c(0, 7)) +
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  ylab("Salinity (psu)") + xlab("Year") +
+  theme_bw()
+
+#Multiple plots aligned
+iA <- ggplotGrob(a)
+iB <- ggplotGrob(b)
+
+maxWidth = grid::unit.pmax(iA$widths[2:5], iB$widths[2:5])
+iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth); 
+
+grid.arrange(iA, iB, ncol=1)
+```
+
+This change in coupling dynamics across the salinity disturbance gradient stands in contrast to the relatively stable couplings between *F~CH4~* and either *Ta* or *GEP* at a nearby wetland complex that did not experience an increase in salinity across the same time period (Fig. 2). This wetland experienced some watertable drawdowns in 2013 and 2014 that are discussed in more detail in @sturtevant_identifying_2016, but regardless, we observed couplings of similar magnitude for *MI~Ta,FCH4~* and *MI~GEP,FCH4~* across all years (Fig. 2). Most importantly, we did no observe a similar decoupling of *F~CH4~* and *GEP* during 2015 and 2016 when salinity levels did not increase at this wetland site. Flux magnitudes were often similar magnitude or larger at this wetland complex compared with the site that experienced salinization, particularly during the high salinity periods when *GEP* decreased at wetland experiencing salinization (Supporting Information; Fig. S2).
+
+```{r fig2, fig.cap="Monthly relative mutual information (*MI*; top panel) shared between GEP and F~CH4~ (green line) as well as T~a~ and F~CH4~ (red line) at the wetland that experienced no increase in salinity. All *MI* values are corrected using 100 Monte Carlo reshufflings of time series, such that *MI* > 0 are statistically significant at *P* < 0.05. Only positive *MI* are shown, and the lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
+source("R/MI_functions.R")
+source("R/signficance_tests.R")
+
+#create a growing month stamp
+peat19_all$month <- month(peat19_all$datetime)
+peat19_all$m_yr <- paste(peat19_all$year, peat19_all$month, sep = "")
+
+#create data list by month
+by_month <- peat19_all %>%
+  filter(year > 2012 & year < 2018) %>%
+  group_by(m_yr) %>%
+  nest()
+
+#plot that needs to be dealt with later
+clipped_monthly <- subset(peat19_monthly, year > 2012 & year < 2018)
 clipped_monthly$date <- as.Date(clipped_monthly$datetime)
 clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month)
 clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
@@ -234,18 +182,23 @@ a <- ggplot(clipped_monthly) +
   geom_point(aes(x = date, y = gppMI_corrected), color = "dark green", alpha = 0.5) +
   geom_line(aes(x = date, y = ma(gppMI_corrected, 3)), color = "dark green", size = 1) +  
   scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
-  ylab(expression(bolditalic(MI)~"(x,"~F[CH4]~")")) + theme_bw() + xlab("")
+  scale_y_continuous(limits = c(0, 0.3)) +
+  ylab(expression(bolditalic(MI)~"(x,"~F[CH4]~")")) + xlab("") + ggtitle("Baseline wetland") +
+  theme_bw()
 
-b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=as.Date(datetime), y=Cond)) +
+b <- ggplot(subset(peat19_daily, year > 2012 & year < 2018), aes(x=as.Date(datetime), y=Sal)) +
   geom_line(color = "blue") +
   scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
-  ylab("Conductivity (mS)") + xlab("Year") +
+  scale_y_continuous(limits = c(0, 7)) +
+  ylab("Salinity (psu)") + xlab("Year") +
   theme_bw()
   
 grid.arrange(a, b, ncol=1)
 ```
 
-```{r tr_GPP_to_CH4, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly GEP to F~CH4~ and (bottom panel) T~a~ to F~CH4~ over the growing season during years of low salinity (2012-2013) and high salinity (2015-2016). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Other lines represented ***T*** at various lags of GEP or T~a~ and color demonstrates mean conductivity (mS) during the respective year. Years 2014 and 2017 are omitted from analysis because other disturbance events affected wetlands processes and confound entropy analyses.", fig.height=4, fig.width=7.5, dpi=600}
+We observe a similar transition in the hierarchy of coupling between the low salinity period (2012-2013) and the high salinity period (2015-2016) in the transfer of information from *GEP* or *Ta* to *F~CH4~* (Fig. 3). During the low salinity period, we observed similar magnitude *TE* for *GEP* to *F~CH4~* and *Ta* to *F~CH4~*, where significant transfer of information from *GEP* to *F~CH4~* occurred between 0-12 hour time lags and *GEP* from the previous day (over 24 hour lags) also affected current *F~CH4~* (Fig. 1). These transfers were still observable during 2015, but by 2016 during peak salinity only weak significant *TE* was observed at 0-3 hour lags from *GEP* to *F~CH4~* (Fig. 3). We observed a very different dynamic for *TE* from *Ta* to *F~CH4~* that mirrors our *MI* observations, where *TE*(*Ta* > *F~CH4~*) was of similar magnitude to *TE*(*GEP* > *F~CH4~*) during the low salinity years (2012 & 2013), and these directional couplings strengthened during the high salinity periods in 2015 and 2016 (Fig. 3). Regardless of *TE* strength, under most conditions *Ta* at time lags up to ~30 hours affected current CH~4~ flux rates (Fig. 3). Transfer entropy from 2014 and 2017 was not evaluated in this analysis because insect outbreakand flushing disturbances also affected the wetlands and limit our ability to evaluate the affect of salinization alone.
+
+```{r fig3, fig.cap="Normalized transfer entropy (***TE***) from (top panel) half-hourly GEP to F~CH4~ and (bottom panel) T~a~ to F~CH4~ over the growing season during years of low salinity (2012-2013) and high salinity (2015-2016). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Other lines represented ***TE*** at various lags of GEP or T~a~ and color demonstrates mean salinity (psu) during the respective year. Years 2014 and 2017 are omitted from analysis because other disturbance events affected wetlands processes and confound analyses.", fig.height=4, fig.width=7.5, dpi=600}
 source("R/TR_functions.R")
 source("R/transformations.R")
 
@@ -288,33 +241,34 @@ gpp.wm_df <- tidy_list(tr_wm_gpp); gpp.wm_shuf <- tidy_list(mc_wm_gpp)
 ta.wm_df <- tidy_list(tr_wm_ta); ta.wm_shuf <- tidy_list(mc_wm_ta)
 
 #add mean annual conductivity to dataframes by year
-mean_cond <- anom_data %>%
+mean_sal <- anom_data %>%
   filter(DOY > 100 & DOY < 300) %>%
   group_by(year) %>%
-  summarise(`Cond. (mS)` = mean(Cond, na.rm = T))
+  summarise(`Sal. (psu)` = mean(sal, na.rm = T))
 
-gpp.wm_df <- merge(gpp.wm_df, mean_cond, all.x = T) 
-ta.wm_df <- merge(ta.wm_df, mean_cond, all.x = T) 
+gpp.wm_df <- merge(gpp.wm_df, mean_sal, all.x = T) 
+ta.wm_df <- merge(ta.wm_df, mean_sal, all.x = T) 
 
 a <- ggplot() +
-  geom_line(data = gpp.wm_df, aes(x = hour, y = tr, color = `Cond. (mS)`)) +
+  geom_line(data = gpp.wm_df, aes(x = hour, y = tr, color = `Sal. (psu)`)) +
   geom_line(data = gpp.wm_shuf, aes(x = hour, y = tr), color = "red") +
   facet_wrap(~year, nrow = 1) +
   scale_x_continuous(breaks = seq(0, 48, by = 6)) +
-  xlab("") + ylab(expression(bolditalic(T)~"("~GEP %->% F[CH4]~")")) +
-  theme(legend.position = "none")
-
-b <- ggplot() +
-  geom_line(data = ta.wm_df, aes(x = hour, y = tr, color = `Cond. (mS)`)) +
-  geom_line(data = ta.wm_shuf, aes(x = hour, y = tr), color = "red") +
-  facet_wrap(~year, nrow = 1) +
-  scale_x_continuous(breaks = seq(0, 48, by = 6)) +
-  xlab("Lag (hours)") + ylab(expression(bolditalic(T)~"("~T[a] %->% F[CH4]~")")) +
+  scale_y_continuous(limits = c(0.005, 0.04)) +
+  xlab("") + ylab(expression(bolditalic(TE)~"("~GEP %->% F[CH4]~")")) +
   theme(legend.margin = margin(0, 0, 0, 0),
-        legend.position=c(.31, .7), legend.key.size =  unit(0.12, "in"),
+        legend.position=c(.82, .7), legend.key.size =  unit(0.1, "in"),
         legend.text = element_text(size=8), legend.title = element_text(size=8.5, face = "bold"),
         legend.background = element_rect(fill = "transparent"))
 
+b <- ggplot() +
+  geom_line(data = ta.wm_df, aes(x = hour, y = tr, color = `Sal. (psu)`)) +
+  geom_line(data = ta.wm_shuf, aes(x = hour, y = tr), color = "red") +
+  facet_wrap(~year, nrow = 1) +
+  scale_y_continuous(limits = c(0.005, 0.04)) +
+  scale_x_continuous(breaks = seq(0, 48, by = 6)) +
+  xlab("Lag (hours)") + ylab(expression(bolditalic(TE)~"("~T[a] %->% F[CH4]~")")) +
+  theme(legend.position = "none")
 
 #Multiple plots aligned
 iA <- ggplotGrob(a)
@@ -332,48 +286,50 @@ pre_rise <- peat6_daily %>%
   filter(year > 2011 & year < 2015) %>%
   select(mgCH4, gGEP, gER, mET, PAR, H, Tair, Tw, Ts, mVPD, PA, u., Rain, WTD)
 
+set.seed(1000)
 # Random forest model for GEP trained pre-salinity rise
 pre_GEP <- train(gGEP ~ Tair + PAR + mVPD + PA + u. + WTD, data = pre_rise,
                       method = "rf",
                       trControl = trainControl(method = "cv", number = 5),
                       preProcess = c("medianImpute"),
-                      #tuneGrid = expand.grid(.decay = c(.1, 0.05, .01), .size = c(3, 5, 7, 9)),
-                      na.action = na.pass,
-                      linout = T)
+                      tuneGrid = expand.grid(.mtry = c(2, 3, 4)),
+                      na.action = na.pass)
 
+set.seed(2000)
 # Random forest model for FCH4 trained pre-salinity rise
 pre_CH4 <- train(mgCH4 ~ gGEP + Tair + mVPD + PA + u. + WTD, data = pre_rise,
                       method = "rf",
                       trControl = trainControl(method = "cv", number = 5),
                       preProcess = c("medianImpute"),
-                      #tuneGrid = expand.grid(.decay = c(.1, 0.05, .01), .size = c(3, 5, 7, 9)),
+                      ntree = 1000,
+                      tuneGrid = expand.grid(.mtry = c(2, 3, 4)),
                       na.action = na.pass)
 
-# generate predictions for high salinity years for GEP and FCH4
-pre_rise$GEPpred <- predict.train(pre_GEP, pre_rise, na.action = na.pass)
-pre_rise$CH4pred <- predict.train(pre_CH4, pre_rise, na.action = na.pass)
-
-# save ob v. pred summary statistics
-GEPregr <- summary(lm(gGEP ~ GEPpred, data = pre_rise))
-CH4regr <- summary(lm(mgCH4 ~ CH4pred, data = pre_rise))
-
-a <- ggplot(pre_rise, aes(x = CH4pred, y = mgCH4)) +
-  geom_point(alpha = 0.25) +
-  geom_abline(intercept = 0, slope = 1) +
-  xlab(expression(F[CH4-Pred.]~" (mg C"~m^{-2}~d^{-1}~")")) +
-  ylab(expression(F[CH4-Obs.]~" (mg C"~m^{-2}~d^{-1}~")")) +
-  ggtitle("Pre-salinity rise (2012-2014)")
-
-b <- ggplot(pre_rise, aes(x = GEPpred*-1, y = gGEP*-1)) +
-  geom_point(alpha = 0.25) +
-  geom_abline(intercept = 0, slope = 1) +
-  ylab(expression(GEP[Obs.]~"("~g~C~m^{-2}~d^{-1}~")")) +
-  xlab(expression(GEP[Pred.]~"("~g~C~m^{-2}~d^{-1}~")"))
-
-grid.arrange(a, b, ncol = 1)
+# # generate predictions for high salinity years for GEP and FCH4
+# pre_rise$GEPpred <- predict.train(pre_GEP, pre_rise, na.action = na.pass)
+# pre_rise$CH4pred <- predict.train(pre_CH4, pre_rise, na.action = na.pass)
+# 
+# # save ob v. pred summary statistics
+# GEPregr <- summary(lm(gGEP ~ GEPpred, data = pre_rise))
+# CH4regr <- summary(lm(mgCH4 ~ CH4pred, data = pre_rise))
+# 
+# a <- ggplot(pre_rise, aes(x = CH4pred, y = mgCH4)) +
+#   geom_point(alpha = 0.25) +
+#   geom_abline(intercept = 0, slope = 1) +
+#   xlab(expression(F[CH4-Pred.]~" (mg C"~m^{-2}~d^{-1}~")")) +
+#   ylab(expression(F[CH4-Obs.]~" (mg C"~m^{-2}~d^{-1}~")")) +
+#   ggtitle("Pre-salinity rise (2012-2014)")
+# 
+# b <- ggplot(pre_rise, aes(x = GEPpred*-1, y = gGEP*-1)) +
+#   geom_point(alpha = 0.25) +
+#   geom_abline(intercept = 0, slope = 1) +
+#   ylab(expression(GEP[Obs.]~"("~g~C~m^{-2}~d^{-1}~")")) +
+#   xlab(expression(GEP[Pred.]~"("~g~C~m^{-2}~d^{-1}~")"))
+# 
+# grid.arrange(a, b, ncol = 1)
 ```
 
-```{r salinity_rise_predictions, fig.width=7.5, fig.height=4}
+```{r fig4, fig.width=7.5, fig.height=4}
 # extract data to make predictions on the salinity rise years
 rise_years <- peat6_daily %>%
   filter(year > 2014 & year < 2017) %>%
@@ -400,7 +356,7 @@ b <- ggplot(rise_years) +
 grid.arrange(a, b, ncol = 1)
 ```
 
-```{r flux_reduction_estimates}
+```{r flux_reduction_estimates, echo=FALSE}
 #calculate annual budgets for RF predictions and observations during salinity years
 annual_budgets <- rise_years %>%
   group_by(year) %>%
@@ -412,100 +368,9 @@ annual_budgets <- rise_years %>%
          GEPpc = (GEPyr - GEPyr_rf)*100/GEPyr)
 ```
 
-<!-- ## Water chemistry -->
+Finally, we trained random forest models on the years of data prior to the large changes in *F~CH4~* coupling during 2015 and 2016 to estimate to the overall reduction in *GEP* and *F~CH4~* during those years. As stated previously, both models were fit using 5-fold cross-validation where the random forest *m~try~* was chosen in the process. During cross-validation, the final *GEP* model explained `r max(pre_GEP$results$Rsquared)*100`% of data variance (*r^2^*; *m~try~* = 4), and the final *F~CH4~* model explained `r max(pre_CH4$results$Rsquared)*100`% of the variance (*r^2^*; *m~try~* = 3).
 
-<!-- ```{r fig4, echo = F} -->
-<!-- only16 <- subset(peat6_daily, year > 2015) -->
-<!-- only16$jday <- lubridate::yday(only16$datetime) -->
-
-<!-- only16$season <- ifelse(only16$jday %in% c(0:100) | only16$jday %in% c(300:365), "fallow",  -->
-<!--                            "growing") -->
-
-<!-- # ggplot(only16, aes(x=datetime)) + -->
-<!-- #   geom_line(aes(y = DOrange1), color="red") + -->
-<!-- #   geom_line(aes(y = DOdiff), color="blue") -->
-<!-- #  -->
-<!-- # ggplot(only16, aes(x=mgCH4, y=DOrange1, color=season)) + -->
-<!-- #   geom_point() -->
-
-<!-- regr <- lm(DOrange1 ~ mgCH4, data = subset(only16, season == "growing")); summary(regr) -->
-<!-- ``` -->
-
-```{r test, echo = F}
-#CH4sub <- peat6_all[!is.na(peat6_all$wm), ]
-
-by_year <- peat6_daily %>%
-  filter(year > 2011 & year < 2018) %>%
-  group_by(year) %>%
-  select(mgCH4, gGEP, mET, H, Tair, mVPD, u., Rain, WTD) %>%
-  nest()
-
-net_model <- function(df) {
-  train(mgCH4 ~ ., data = df, method = "glmnet",
-                 trControl = trainControl(method = "cv"),
-                 preProcess = c("center", "scale", "medianImpute", "BoxCox"),
-                 tuneGrid = expand.grid(.alpha = 1, .lambda = 0.1),
-                 na.action = na.pass)
-}
-
-# hh_model <- function(df) {
-#   train(wm ~ gpp_ANNnight + wq_gf + wt_gf + TA.y + VPD + ustar + PRECIP + WT + WD,
-#         data = df,
-#         method = "glmnet",
-#         preProcess = c("center", "scale", "medianImpute", "BoxCox"),
-#         na.action = na.pass)
-# }
-
-# subset <- peat6_daily %>%
-#   ungroup() %>%
-#   select(mgCH4, gGEP, gER, mET, H, Tair, Tw, mVPD, u., Rain, WTD) %>%
-#   na.omit()
-
-# #caret approach
-# glm_reg <- train(wm ~ gpp_ANNnight + wq_gf + wt_gf + TA.y + VPD + ustar + PRECIP + WT + WD, 
-#                  data = CH4sub, method = "glmnet",
-#                  trControl = trainControl(method = "cv"),
-#                  preProcess = c("center", "scale", "medianImpute"),
-#                  #tuneGrid = expand.grid(.alpha = 1, .lambda = c(0, 0.001, 0.1, 1, 5, 10, 20, 50)),
-#                  na.action = na.pass)
-
-by_year <- by_year %>%
-  mutate(model = map(data, net_model),
-         Imp = map(model, varImp))
-
-impo_list <- by_year$Imp
-
-a <- impo_list[[1]]$importance
-a$year <- 2012
-a$vars <- rownames(a)
-
-b <- impo_list[[2]]$importance
-b$year <- 2013
-b$vars <- rownames(b)
-
-c <- impo_list[[3]]$importance
-c$year <- 2014
-c$vars <- rownames(c)
-
-d <- impo_list[[4]]$importance
-d$year <- 2015
-d$vars <- rownames(d)
-
-e <- impo_list[[5]]$importance
-e$year <- 2016
-e$vars <- rownames(e)
-
-f <- impo_list[[6]]$importance
-f$year <- 2017
-f$vars <- rownames(f)
-
-all_now <- do.call("rbind", list(a, b, c, d, e, f))
-
-ggplot(all_now, aes(x=year, y=Overall, color=vars)) +
-  #stat_smooth(se=F) +
-  geom_point(size = 2) +
-  geom_line()
-```
+Model predictions during the high salinity period demonstrate that CH~4~ fluxes were not substantially lower than expected if the impact of salinity was not taken into account (Fig. 4). During 2015, annual CH~4~ flux observations were only `r annual_budgets$CH4pc[annual_budgets$year == 2015]`% below the model predictions, though during 2016, observed annual budgets were `r annual_budgets$CH4pc[annual_budgets$year == 2016]`% below the model predictions. A much larger effect was observed for *GEP*, where observed *GEP* was substantially below the random forest predictions not accounting for salinity effects, particularly during the growing season of 2016 when salinity levels were highest (Fig. 4). During 2015, observed annual *GEP* budgets were `r annual_budgets$GEPpc[annual_budgets$year == 2015]`% lower than predictions, and during 2016 annual *GEP* observations were `r annual_budgets$GEPpc[annual_budgets$year == 2016]`% lower than predictions assuming no effect of salinity. This modeling exercise demonstrates the disproportionate effect of this form of wetland salinization on *GEP* rather than CH~4~ emissions.
 
 # Discussion
 
