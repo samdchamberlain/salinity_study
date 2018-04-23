@@ -37,12 +37,19 @@ library(gridExtra)
 library(scales)
 library(zoo)
 library(ggpubr)
+library(entropy)
+library(wq)
+library(forecast)
+library(stringr)
+source('R/TR_functions.R'); source('R/MI_functions.R'); 
+source('R/signficance_tests.R'); source('R/transformations.R')
 ```
 
 # Results
 ```{r load_process}
 #load and process wetland sites into half-hourly, daily, and annual sums
 source("R/peat6_processing.R") #wetland experiencing salinity rise
+source("R/peat19_processing.R") #mature wetland baseline (no salinity rise)
 ```
 
 ```{r fig1, fig.height= 5, fig.width=6}
@@ -64,6 +71,7 @@ by_month <- peat6_all %>%
   group_by(m_yr) %>%
   nest()
 
+clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
 clipped_monthly$T_shuf <- mi_timeseries(Ta_shuf, wm_shuf, data_list = by_month)
 
 ggplot(clipped_monthly, aes(x = CH4_obs, y = T_shuf)) +
@@ -73,7 +81,54 @@ ggplot(clipped_monthly, aes(x = CH4_obs, y = T_shuf)) +
   xlab("Total methane flux observations")
 ```
 
-```{r fig2, fig.height = 5, fig.width = 7}
+```{r fig2, fig.cap="Monthly Kendall's rank correlation coefficient (*$\tau$*; top panel) shared between GEP and F~CH4~ (green line) as well as T~a~ and F~CH4~ (red line) at the wetland that experienced salinization. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
+source("R/MI_functions.R")
+source("R/signficance_tests.R")
+
+## Processing for high salinity wetland
+#create a growing month stamp
+peat6_all$month <- month(peat6_all$datetime)
+peat6_all$m_yr <- paste(peat6_all$year, peat6_all$month, sep = "")
+
+#create data list by month
+by_month <- peat6_all %>%
+  filter(year > 2011 & year < 2018) %>%
+  group_by(m_yr) %>%
+  nest()
+
+#plot that needs to be dealt with later
+clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
+clipped_monthly$date <- as.Date(clipped_monthly$datetime)
+clipped_monthly$GPP_CH4_mi <- corr_timeseries(gpp_ANNnight*-1, wm, data_list = by_month)
+clipped_monthly$Tair_CH4_mi <- corr_timeseries(TA.x, wm, data_list = by_month)
+
+a <- ggplot(clipped_monthly) +
+  geom_point(aes(x = date, y = Tair_CH4_mi), color = "red", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(Tair_CH4_mi, 3)), color = "red", size = 1) +
+  geom_point(aes(x = date, y = GPP_CH4_mi), color = "dark green", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(GPP_CH4_mi, 3)), color = "dark green", size = 1) +  
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  ylab(expression(tau~"(x,"~F[CH4]~")")) + xlab("") + ggtitle("Rising salinity wetland") +
+  theme_bw()
+
+b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=as.Date(datetime), y=Sal)) +
+  geom_line(color = "blue") +
+  scale_y_continuous(limits = c(0, 7)) +
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  ylab("Salinity (psu)") + xlab("Year") +
+  theme_bw()
+
+#Multiple plots aligned
+iA <- ggplotGrob(a)
+iB <- ggplotGrob(b)
+
+maxWidth = grid::unit.pmax(iA$widths[2:5], iB$widths[2:5])
+iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth); 
+
+grid.arrange(iA, iB, ncol=1)
+```
+
+```{r fig3, fig.height = 5, fig.width = 7}
 time_series <- theme_bw() +
   theme(panel.grid.minor=element_blank(), panel.grid.major.y = element_blank(),
         axis.title.x = element_blank(), axis.title.y = element_text(size=9))
@@ -119,9 +174,7 @@ iC$widths[2:5] <- as.list(maxWidth); iD$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, iC, iD, ncol=1)
 ```
 
-```{r causality_checks, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly T~a~ to F~CH4~ and (bottom panel) F~CH4~ to T~a~ over multiple growing seasons. The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on ~a priori~ knowledge only changes in T~a~ should induce changes in F~CH4~, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
-source("R/TR_functions.R")
-source("R/transformations.R")
+```{r fig4, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly T~a~ to F~CH4~ and (bottom panel) F~CH4~ to T~a~ over multiple growing seasons. The red line represents significance threshold (*P* < 0.01) based on Monte Carlo reshuffling of the time series. Based on ~a priori~ knowledge only changes in T~a~ should induce changes in F~CH4~, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
 
 #apply anomaly filter
 anom_data <- peat6_all %>%
@@ -176,6 +229,52 @@ b <- ggplot() +
   scale_x_continuous(breaks = seq(0, 48, by = 6)) +
   scale_y_continuous(limits = c(0, 0.04)) +
   xlab("Lag (hours)")  + ylab(expression(bolditalic(T)~"("~F[CH4] %->% T[a]~")"))
+
+#Multiple plots aligned
+iA <- ggplotGrob(a)
+iB <- ggplotGrob(b)
+
+maxWidth = grid::unit.pmax(iA$widths[2:5], iB$widths[2:5])
+iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth); 
+
+grid.arrange(iA, iB, ncol=1)
+```
+
+```{r fig5, fig.cap="Normalized transfer entropy (***T***) from (top panel) half-hourly GEP to F~CH4~ and (bottom panel) F~CH4~ to GEP over multiple growing seasons. The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on ~a priori~ knowledge only changes in GEP should induce changes in F~CH4~, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
+
+#calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
+# for TA -> CH4
+tr_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "observed", 
+                           lags = 72, bins = 10, normalize = T)
+
+mc_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
+                           lags = 72, bins = 10, runs = 5, alpha = 0.05, normalize = T)
+# for CH4 -> TA
+tr_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "observed", 
+                           lags = 72, bins = 10, normalize = T)
+
+mc_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "shuffled", 
+                           lags = 72, bins = 10, runs = 5, alpha = 0.05, normalize = T)
+
+#unlist data to tidy dataframe
+wm.gep_df <- tidy_list(tr_gep_wm); wm.gep_shuf <- tidy_list(mc_gep_wm)
+gep.wm_df <- tidy_list(tr_wm_gep); gep.wm_shuf <- tidy_list(mc_wm_gep)
+
+a <- ggplot() +
+  geom_line(data = gep.wm_df, aes(x = hour, y = tr)) +
+  geom_line(data = gep.wm_shuf, aes(x = hour, y = tr), color = "red") +
+  facet_wrap(~year, nrow = 1) +
+  scale_x_continuous(breaks = seq(0, 48, by = 6)) +
+  scale_y_continuous(limits = c(0, 0.04)) +
+  ylab(expression(bolditalic(T)~"("~GEP %->% F[CH4]~")"))
+
+b <- ggplot() +
+  geom_line(data = wm.gep_df, aes(x = hour, y = tr)) +
+  geom_line(data = wm.gep_shuf, aes(x = hour, y = tr), color = "red") +
+  facet_wrap(~year, nrow = 1) +
+  scale_x_continuous(breaks = seq(0, 48, by = 6)) +
+  scale_y_continuous(limits = c(0, 0.04)) +
+  xlab("Lag (hours)")  + ylab(expression(bolditalic(T)~"("~F[CH4] %->% GEP~")"))
 
 #Multiple plots aligned
 iA <- ggplotGrob(a)

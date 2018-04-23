@@ -10,17 +10,17 @@ mutual_info <- function(x, y, bins = 10, normalize = TRUE) {
   clip_set <- na.omit(data.frame(x, y)) #clear NA values from x,y variables
 
   y2d <- discretize2d(clip_set$x, clip_set$y, numBins1 = bins, numBins2 = bins) #joint distribution
-  
+
   Hx <- entropy.empirical(rowSums(y2d)) #entropy x variable
   Hy <- entropy.empirical(colSums(y2d)) #entropy y variable
   Hxy <- entropy.empirical(y2d) #joint entropy
-  
+
   if (normalize == T) {
     I <- (Hx + Hy - Hxy)/Hy #relative mutual information
   } else {
     I <- (Hx + Hy - Hxy) #absolute mutual information
   }
-  
+
   return(I)
 }
 
@@ -55,7 +55,7 @@ mi_timeseries <- function(x, y, data_list, bins = 10, normalize = TRUE) {
 }
 
 #calculate correlation coefficients for comparison
-corr_timeseries <- function(x, y, data_list, method = "pearson") {
+corr_timeseries <- function(x, y, data_list) {
 
   corr_series <- vector("double", nrow(data_list)) #vector to store correlation coefficients
 
@@ -65,7 +65,7 @@ corr_timeseries <- function(x, y, data_list, method = "pearson") {
     x_var <- eval(substitute(x), current_df)
     y_var <- eval(substitute(y), current_df)
 
-    out <- cor.test(x_var, y_var, method = method)
+    out <- cor.test(x_var, y_var, method = "kendall")
     corr_series[[i]] <- out$estimate[[1]]
   }
   corr_series
