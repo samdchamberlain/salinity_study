@@ -1,6 +1,7 @@
 ---
-title: 'Supplemental Materials: TBN'
-author: "Samuel D Chamberlain^1^"
+title: 'Supplemental Materials: Dynamic ecosystem function during wetland salinization: differential effects on methane biogeochemistry and ecosystem productivity.'
+author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J Szutu^1^,
+  Joseph G Verfaillie^1^, and Dennis D Baldocchi^1^
 date: '`r Sys.Date()`'
 output:
   pdf_document: default
@@ -12,7 +13,7 @@ header-includes:
 - \doublespacing
 - \usepackage{hyperref}
 link-citations: yes
-csl: global-change-biology.csl
+csl: institute-of-physics-harvard.csl
 bibliography: library.bib
 ---
 
@@ -46,13 +47,7 @@ source('R/signficance_tests.R'); source('R/transformations.R')
 ```
 
 # Results
-```{r load_process}
-#load and process wetland sites into half-hourly, daily, and annual sums
-source("R/peat6_processing.R") #wetland experiencing salinity rise
-source("R/peat19_processing.R") #mature wetland baseline (no salinity rise)
-```
-
-```{r fig1, fig.cap="Spurious relative mutual information (MI) is impacted by the total number of available obervations in each monthly calculation. All values presented are reshuffled in the same manner as Monte Carlo reshufflings for significance testing in the main manuscript. Blue line represents a loess fit for the presented data.", fig.height= 5, fig.width=6, dpi=600}
+```{r fig1, fig.cap="Spurious relative mutual information (*MI*) impacted by the total number of available obervations in each monthly calculation. All values presented are reshuffled in the same manner as Monte Carlo for significance testing in the main manuscript. Blue line represents a LOESS fit for the presented data.", fig.height= 5, fig.width=6, dpi=600}
 #create a growing month stamp
 peat6_all$month <- month(peat6_all$datetime)
 peat6_all$m_yr <- paste(peat6_all$year, peat6_all$month, sep = "")
@@ -79,7 +74,7 @@ ggplot(clipped_monthly, aes(x = CH4_obs, y = T_shuf)) +
   xlab("Total methane flux observations")
 ```
 
-```{r fig2, fig.cap="Monthly Kendall's rank correlation coefficient (*$\tau$*; top panel) shared between *GEP* and *F~CH4~* (green), as well as *Ta* and *F~CH4~* (red) at the wetland that experienced salinization. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
+```{r fig2, fig.cap="Monthly Kendall's rank correlation coefficient (\\tau; top panel) shared between *GEP* and *F~CH4~* (green), as well as *Ta* and *F~CH4~* (red) at the wetland that experienced salinization. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
 source("R/MI_functions.R")
 source("R/signficance_tests.R")
 
@@ -126,7 +121,7 @@ iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, ncol=1)
 ```
 
-```{r fig3, fig.cap="Time series of daily methane fluxes (*F~CH4~*), gross ecosystem photosynthesis (*GEP*), net ecosystem echange (*NEE*), and salinity at the reference wetland and salinization wetland.", fig.height = 5, fig.width = 7, dpi=600}
+```{r fig3, fig.cap="Time series of daily methane fluxes (*F~CH4~*), gross ecosystem photosynthesis (*GEP*), net ecosystem exchange (*NEE*), and salinity at the reference wetland and the wetland that experienced salinization.", fig.height = 5, fig.width = 7, dpi=600}
 time_series <- theme_bw() +
   theme(panel.grid.minor=element_blank(), panel.grid.major.y = element_blank(),
         axis.title.x = element_blank(), axis.title.y = element_text(size=9))
@@ -137,6 +132,7 @@ both_sites$date <- as.Date(both_sites$datetime)
 a <- ggplot(both_sites, aes(x=date, y=mgCH4, color=site)) +
   geom_line(size = 0.5) + 
   scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  ylab(expression(F[CH4]~" "~"("~mg~C~m^{-2}~d^{-1}~")")) + 
   time_series +
   theme(legend.title=element_blank(), legend.margin = margin(0, 0, 0, 0),
         legend.position=c(.85, .80),
@@ -172,7 +168,7 @@ iC$widths[2:5] <- as.list(maxWidth); iD$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, iC, iD, ncol=1)
 ```
 
-```{r fig4, fig.cap="Relative transfer entropy (***TE***) from (top panel) half-hourly *Ta* to *F~CH4~* and (bottom panel) *F~CH4~* to *Ta* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on ~a priori~ knowledge only changes in *Ta* should induce changes in *F~CH4~*, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
+```{r fig4, fig.cap="Relative transfer entropy (***TE***) from (top panel) *Ta* to *F~CH4~* and (bottom panel) *F~CH4~* to *Ta* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on *a priori* knowledge changes in *Ta* should induce changes in *F~CH4~*, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
 
 #apply anomaly filter
 anom_data <- peat6_all %>%
@@ -218,7 +214,7 @@ a <- ggplot() +
   facet_wrap(~year, nrow = 1) +
   scale_x_continuous(breaks = seq(0, 48, by = 6)) +
   scale_y_continuous(limits = c(0, 0.04)) +
-  ylab(expression(bolditalic(T)~"("~T[a] %->% F[CH4]~")"))
+  ylab(expression(bolditalic(TE)~"("~T[a] %->% F[CH4]~")"))
 
 b <- ggplot() +
   geom_line(data = wm.ta_df, aes(x = hour, y = tr)) +
@@ -226,7 +222,7 @@ b <- ggplot() +
   facet_wrap(~year, nrow = 1) +
   scale_x_continuous(breaks = seq(0, 48, by = 6)) +
   scale_y_continuous(limits = c(0, 0.04)) +
-  xlab("Lag (hours)")  + ylab(expression(bolditalic(T)~"("~F[CH4] %->% T[a]~")"))
+  xlab("Lag (hours)")  + ylab(expression(bolditalic(TE)~"("~F[CH4] %->% T[a]~")"))
 
 #Multiple plots aligned
 iA <- ggplotGrob(a)
@@ -238,7 +234,7 @@ iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, ncol=1)
 ```
 
-```{r fig5, fig.cap="Relative transfer entropy (***T***) from (top panel) half-hourly *GEP* to *F~CH4~* and (bottom panel) *F~CH4~* to *GEP* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series.", fig.height=4, fig.width=7.5, dpi=600}
+```{r fig5, fig.cap="Relative transfer entropy (***TE***) from (top panel) *GEP* to *F~CH4~* and (bottom panel) *F~CH4~* to *GEP* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series.", fig.height=4, fig.width=7.5, dpi=600}
 
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
 # for TA -> CH4
