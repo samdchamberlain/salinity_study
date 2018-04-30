@@ -47,6 +47,12 @@ source('R/signficance_tests.R'); source('R/transformations.R')
 ```
 
 # Results
+```{r load_process}
+#load and process wetland sites into half-hourly, daily, and annual sums
+source("R/peat6_processing.R") #wetland experiencing salinity rise
+source("R/peat19_processing.R") #baseline mature wetland w/o salinity rise
+```
+
 ```{r fig1, fig.cap="Spurious relative mutual information (*MI*) impacted by the total number of available obervations in each monthly calculation. All values presented are reshuffled in the same manner as Monte Carlo for significance testing in the main manuscript. Blue line represents a LOESS fit for the presented data.", fig.height= 5, fig.width=6, dpi=600}
 #create a growing month stamp
 peat6_all$month <- month(peat6_all$datetime)
@@ -196,13 +202,13 @@ tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "obse
                            lags = 72, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 25, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "observed", 
                            lags = 72, bins = 10, normalize = T)
 
 mc_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 25, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.ta_df <- tidy_list(tr_ta_wm); wm.ta_shuf <- tidy_list(mc_ta_wm)
@@ -242,13 +248,13 @@ tr_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "ob
                            lags = 72, bins = 10, normalize = T)
 
 mc_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 5, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "observed", 
                            lags = 72, bins = 10, normalize = T)
 
 mc_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 5, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.gep_df <- tidy_list(tr_gep_wm); wm.gep_shuf <- tidy_list(mc_gep_wm)
