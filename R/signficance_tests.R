@@ -13,18 +13,24 @@ mi_confidence <- function(x, y, alpha = 0.05, runs = 100, bins = 10, normalize =
     mc_out[i] <- mutual_info(rand_x, y, bins, normalize) #calculate MI between shuffled x and y
   }
 
-  if (alpha == 0.01) {
-    limit <- mean(mc_out) + 2.36*sd(mc_out)
-  } else if (alpha == 0.05) {
-    limit <- mean(mc_out) + 1.66*sd(mc_out)
+  if (alpha > 0 && alpha < 1) {
+    limit <- quantile(mc_out, probs = (1 - alpha))[[1]]
   } else {
-    return("This threshold is not supported")
+    return("Error: sig. limit out of range (0 - 1).")
   }
+
+  # if (alpha == 0.01) {
+  #   limit <- mean(mc_out) + 2.36*sd(mc_out)
+  # } else if (alpha == 0.05) {
+  #   limit <- mean(mc_out) + 1.66*sd(mc_out)
+  # } else {
+  #   return("This threshold is not supported")
+  # }
   limit
 }
 
 #calculate confidence bound for Transfer Entropy statistical significance
-tr_confidence <- function(x, y, xlag, ylag = 1, alpha, runs = 25, bins = 10, normalize = T) {
+tr_confidence <- function(x, y, xlag, ylag = 1, alpha = 0.05, runs = 25, bins = 10, normalize = T) {
 
   mc_out <- rep(NA, runs) #vector for statistic output
 
@@ -33,13 +39,19 @@ tr_confidence <- function(x, y, xlag, ylag = 1, alpha, runs = 25, bins = 10, nor
     mc_out[i] <- transfer_entropy(rand_x, y, xlag, ylag, bins = bins, normalize = normalize)
   }
 
-  if (alpha == 0.01) {
-    limit <- mean(mc_out) + 2.49*sd(mc_out)
-  } else if (alpha == 0.05) {
-    limit <- mean(mc_out) + 1.71*sd(mc_out)
+  if (alpha > 0 && alpha < 1) {
+    limit <- quantile(mc_out, probs = (1 - alpha))[[1]]
   } else {
-    return("This threshold is not supported")
+    return("Error: sig. limit out of range (0 - 1).")
   }
+  # if (alpha == 0.01) {
+  #   limit <- mean(mc_out) + 2.49*sd(mc_out)
+  # } else if (alpha == 0.05) {
+  #   limit <- mean(mc_out) + 1.71*sd(mc_out)
+  #   limit2 <- quantile(mc_out, probs = 0.95)[[1]]
+  # } else {
+  #   return("This threshold is not supported")
+  # }
   limit
 }
 

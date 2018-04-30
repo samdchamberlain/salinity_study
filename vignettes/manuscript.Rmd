@@ -175,8 +175,8 @@ clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_mon
 clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
 
 # Monte Carlo significance thresholds (dont run everytime as they take a while)
-sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 100, alpha = 0.05)
-sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 100, alpha = 0.05)
+sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000, alpha = 0.05)
+sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000, alpha = 0.05)
 
 # Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.01
 clipped_monthly$TairMI_corrected <- clipped_monthly$Tair_CH4_mi - sig_Tair
@@ -230,8 +230,8 @@ clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_mon
 clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
 
 # Monte Carlo significance thresholds (dont run everytime as they take a while)
-sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 100, alpha = 0.05)
-sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 100, alpha = 0.05)
+sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000, alpha = 0.05)
+sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000, alpha = 0.05)
 
 # clipped_monthly$Tair_ma <- na.ma(ma(clipped_monthly$Tair_ma, 3))
 # clipped_monthly$GPP_ma <- na.ma(ma(clipped_monthly$GPP_ma, 3))
@@ -297,13 +297,13 @@ tr_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "ob
                            lags = 120, bins = 10, normalize = T)
 
 mc_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled",
-                           lags = 120, bins = 10, runs = 25, alpha = 0.05, normalize = T)
+                           lags = 120, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
 # for TA -> CH4
 tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "observed",
                            lags = 120, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled",
-                           lags = 120, bins = 10, runs = 25, alpha = 0.05, normalize = T)
+                           lags = 120, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 gpp.wm_df <- tidy_list(tr_wm_gpp); gpp.wm_shuf <- tidy_list(mc_wm_gpp)
