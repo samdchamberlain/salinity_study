@@ -1,12 +1,13 @@
 ---
-title: 'Dynamic ecosystem function during wetland salinization: differential effects on methane biogeochemistry and ecosystem productivity.'
+title: 'Dynamic ecosystem function during wetland salinization: differential effects
+  on methane biogeochemistry and ecosystem productivity.'
 author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J Szutu^1^,
   Joseph G Verfaillie^1^, and Dennis D Baldocchi^1^
 date: '`r Sys.Date()`'
 output:
-  word_document: default
   pdf_document: default
   html_document: default
+  word_document: default
 fontsize: 12pt
 header-includes:
 - \usepackage{setspace}
@@ -87,7 +88,7 @@ We calculated mutual information (*MI*) for one-month blocks across the entire f
 
 Transfer entropy quantifies directional information transfer, or more technically, the extent to which knowledge of a variables *X* reduced the uncertainty of the present state of *Y* given knowledge of the history of *Y* itself. If a value of *TE* is above some significance threshold, it is deduced that information flows from *X* to the current state of *Y* [@ruddell_ecohydrologic_2009]. Transfer entropy can also be described by joint and marginal entropies incorporating time lags as follows [@knuth_revealing_2013; @ruddell_ecohydrologic_2009]:
 $$T(X>Y, \tau) = H(X_{t-\tau}, Y_{t-1}) + H(Y_{t}, Y_{t-1}) - H(Y_{t-1}) + H(X_{t-\tau}, Y_{t}, Y_{t-1})$$
-In the above formulation, we assume the immediate history of *Y* (t-1; i.e. the preceding half-hour in eddy flux time series) contributes the most information to the current state of *Y*, and we calculate *TE* across multiple lags of *X* (\tau) to identify dominant timescale of interactions [@ruddell_ecohydrologic_2009; @larsen_disrupted_2017]. More detail on applying transfer entropy (*TE*) to ecosystem-atmosphere fluxes can be found in @ruddell_ecohydrologic_2009, and we follow the basic protocols outlined in this work. This includes building discrete probability distributions using 10 bins for each variable as described above, transforming variables prior to *TE* calculations using a 5-day anomaly filter, and again establishing significance thresholds using Monte Carlo reshuffling of the flux time series. We calculate *TE* for information flow from *Ta* to *F~CH4~* and *GEP* to *F~CH4~*, and did so across multiple lags of the independent variable up to 60 hours. Similarly, we calculated significance thresholds for *TE* at each lag and used 25 reshufflings, rather than 100, due to computational demands. Calculations of transfer entropy are data intensive [@ruddell_ecohydrologic_2009], so we calculate *TE* for entire growing seasons each year (DOY 100-300) similar to @sturtevant_identifying_2016 and @chamberlain_soil_2018. We present both *MI* and *TE* in their relative form, normalized by the entropy of the *Y* variable (*F~CH4~*), so the values represent reductions in the uncertainty of CH~4~ fluxes [@larsen_disrupted_2017]. All information theory calculations were conducted using R 3.3.2 [@r_citation] with the 'entropy' package and home built functions to calculate *TE* and significance thresholds available online with this manuscript (https://github.com/samdchamberlain/salinity_study).
+In the above formulation, we assume the immediate history of *Y* (t-1; i.e. the preceding half-hour in eddy flux time series) contributes the most information to the current state of *Y*, and we calculate *TE* across multiple lags of *X* ($\tau$) to identify dominant timescale of interactions [@ruddell_ecohydrologic_2009; @larsen_disrupted_2017]. More detail on applying transfer entropy (*TE*) to ecosystem-atmosphere fluxes can be found in @ruddell_ecohydrologic_2009, and we follow the basic protocols outlined in this work. This includes building discrete probability distributions using 10 bins for each variable as described above, transforming variables prior to *TE* calculations using a 5-day anomaly filter, and again establishing significance thresholds using Monte Carlo reshuffling of the flux time series. We calculate *TE* for information flow from *Ta* to *F~CH4~* and *GEP* to *F~CH4~*, and did so across multiple lags of the independent variable up to 60 hours. Similarly, we calculated significance thresholds for *TE* at each lag and used 25 reshufflings, rather than 100, due to computational demands. Calculations of transfer entropy are data intensive [@ruddell_ecohydrologic_2009], so we calculate *TE* for entire growing seasons each year (DOY 100-300) similar to @sturtevant_identifying_2016 and @chamberlain_soil_2018. We present both *MI* and *TE* in their relative form, normalized by the entropy of the *Y* variable (*F~CH4~*), so the values represent reductions in the uncertainty of CH~4~ fluxes [@larsen_disrupted_2017]. All information theory calculations were conducted using R 3.3.2 [@r_citation] with the 'entropy' package and home built functions to calculate *TE* and significance thresholds available online with this manuscript (https://github.com/samdchamberlain/salinity_study).
 
 ## 2.3 Salinity Impacts on Annual Fluxes
 To quantify the reduction in *GEP* and *F~CH4~* due to salinity effects, we trained random forest models on fluxes measured during years prior to the salinity rise (2012-2014) using common meteorological drivers of each flux. Predictions are therefore representative of salinity 'naive' ecosystem function. Random forests are an ensemble tree-based method where numerous trees are constructed using bootstrap samples from the training dataset, and the trees are averaged to generate a final prediction. For each tree, a random subset of the predictors (*m~try~*) are chosen at each split to reduce overfitting [@breiman_random_2001]. We used an ensemble of 500 trees, and the *m~try~* value (ranging from 2-4) was chosen by using the model formulation with the lowest root mean squared error following five-fold cross-validation [@kuhn_applied_2013]. Any missing values in the predictor data were imputed using medians. 
@@ -171,14 +172,16 @@ by_month <- peat6_all %>%
 #plot that needs to be dealt with later
 clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
 clipped_monthly$date <- as.Date(clipped_monthly$datetime)
-clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month)
-clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
+clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month, bins = 10)
+clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month, bins = 10)
 
 # Monte Carlo significance thresholds (dont run everytime as they take a while)
-sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000, alpha = 0.05)
-sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000, alpha = 0.05)
+sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, type = "MI",
+                       runs = 1000, alpha = 0.05, bins = 10)
+sig_Tair <- conf_series(TA.x, wm, data_list = by_month, type = "MI",
+                        runs = 1000, alpha = 0.05, bins = 10)
 
-# Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.01
+# Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.05
 clipped_monthly$TairMI_corrected <- clipped_monthly$Tair_CH4_mi - sig_Tair
 clipped_monthly$gppMI_corrected <- clipped_monthly$GPP_CH4_mi - sig_gpp
 
@@ -226,17 +229,16 @@ by_month <- peat19_all %>%
 #plot that needs to be dealt with later
 clipped_monthly <- subset(peat19_monthly, year > 2012 & year < 2018)
 clipped_monthly$date <- as.Date(clipped_monthly$datetime)
-clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month)
-clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month)
+clipped_monthly$GPP_CH4_mi <- mi_timeseries(gpp_ANNnight, wm, data_list = by_month, bins = 10)
+clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month, bins = 10)
 
 # Monte Carlo significance thresholds (dont run everytime as they take a while)
-sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, runs = 1000, alpha = 0.05)
-sig_Tair <- conf_series(TA.x, wm, data_list = by_month, runs = 1000, alpha = 0.05)
+sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, type = "MI", 
+                       runs = 1000, alpha = 0.05, bins = 10)
+sig_Tair <- conf_series(TA.x, wm, data_list = by_month, type = "MI",
+                        runs = 1000, alpha = 0.05, bins = 10)
 
-# clipped_monthly$Tair_ma <- na.ma(ma(clipped_monthly$Tair_ma, 3))
-# clipped_monthly$GPP_ma <- na.ma(ma(clipped_monthly$GPP_ma, 3))
-
-# Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.01
+# Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.05
 clipped_monthly$TairMI_corrected <- clipped_monthly$Tair_CH4_mi - sig_Tair
 clipped_monthly$gppMI_corrected <- clipped_monthly$GPP_CH4_mi - sig_gpp
 
@@ -267,7 +269,9 @@ iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, ncol=1)
 ```
 
-We observed a similar transition between the low salinity period (2012-2013) and the high salinity period (2015-2016) in *TE* from *GEP* or *Ta* to *F~CH4~* (figure 4). During the low salinity years, we observed similar magnitude information transfers from *GEP* to *F~CH4~* (*TE*(*GEP* > *F~CH4~*)) and from *Ta* to *F~CH4~* (*TE*(*Ta* > *F~CH4~*)). Significant *TE*(*GEP* > *F~CH4~*) occurred between 0-12 hour time lags and at similar lag periods from the previous two days (figure 4). These transfers were still observable during 2015, though over condensed lag periods. During peak salinity in 2016, only weak significant *TE*(*GEP* > *F~CH4~*) was observed at 0-3 hour lags and a small window near 48 hours (figure 4). We observed a very different dynamic in *TE*(*Ta* > *F~CH4~*) that mirrors *MI* observations, where *TE*(*Ta* > *F~CH4~*) was of similar magnitude to *TE*(*GEP* > *F~CH4~*) during the low salinity years (2012 & 2013), and *TE*(*Ta* > *F~CH4~*) strengthened during the high salinity 2015 and 2016 (figure 4). Under most conditions, *Ta* at lags up to ~30 hours affected current CH~4~ flux rates, with additional significant transfers around 48 hours (figure 4). Transfer entropy from 2014 and 2017 is not presented because the wetland experienced an insect outbreak and flushing disturbance, respectively, and obscure our ability to evaluate the effect of salinization alone. We observed no significant transfer of information from *F~CH4~* to *Ta* (figure S4), as expected since biological trace gas fluxes should not affect regional meteorological conditions.
+We observed a similar transition between the low salinity period (2012-2013) and the high salinity period (2015-2016) in *TE* from *GEP* or *Ta* to *F~CH4~* (figure 4). During the low salinity years, we observed similar magnitude information transfers from *GEP* to *F~CH4~* (*TE*(*GEP* > *F~CH4~*)) and from *Ta* to *F~CH4~* (*TE*(*Ta* > *F~CH4~*)). Significant *TE*(*GEP* > *F~CH4~*) occurred between 0-12 hour time lags and at similar lag periods from the previous two days (figure 4). These transfers were still observable during 2015, though over condensed lag periods. During peak salinity in 2016, only weak significant *TE*(*GEP* > *F~CH4~*) was observed at 0-3 hour lags and a small window near 48 hours (figure 4). Signficant *TE* spikes could be interpreted with caution because ~ 6 values should occurr by chance at *P* < 0.05 across the 120 lags evaluated.
+
+We observed a very different dynamic in *TE*(*Ta* > *F~CH4~*) that mirrors *MI* observations, where *TE*(*Ta* > *F~CH4~*) was of similar magnitude to *TE*(*GEP* > *F~CH4~*) during the low salinity years (2012 & 2013), and *TE*(*Ta* > *F~CH4~*) strengthened during the high salinity 2015 and 2016 (figure 4). Under most conditions, *Ta* at lags up to ~30 hours affected current CH~4~ flux rates, with additional significant transfers around 48 hours (figure 4). Transfer entropy from 2014 and 2017 is not presented because the wetland experienced an insect outbreak and flushing disturbance, respectively, and obscure our ability to evaluate the effect of salinization alone. We observed no significant transfer of information from *F~CH4~* to *Ta* (figure S4), as expected since biological trace gas fluxes should not alter regional meteorological conditions.
 
 ```{r fig4, fig.cap="Relative transfer entropy (***TE***) from (top panel) half-hourly *GEP* to *F~CH4~* and (bottom panel) *Ta* to *F~CH4~* over the growing season during years of low salinity (2012-2013) and high salinity (2015-2016). The red line represents a significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series calculated at each lag. Other lines represented ***TE*** at various lags of *GEP* or *Ta*, and the color scale shows mean salinity (psu) during the respective year. Years 2014 and 2017 are omitted from analysis because other disturbance events affected wetlands processes and confound analyses.", fig.height=4, fig.width=7.5, dpi=600}
 
@@ -349,7 +353,7 @@ iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, ncol=1)
 ```
 
-```{r pre_salinity_models, message=FALSE, warnign=FALSE}
+```{r pre_salinity_models}
 # train nn model on pre-salinity rise years and use to calculate reduction in component fluxes 
 pre_rise <- peat6_daily %>%
   filter(year > 2011 & year < 2015) %>%

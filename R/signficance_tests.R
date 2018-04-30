@@ -56,7 +56,7 @@ tr_confidence <- function(x, y, xlag, ylag = 1, alpha = 0.05, runs = 25, bins = 
 }
 
 #calculate times series of Monte Carlo limits (does not include time lags)
-conf_series <- function(x, y, data_list, alpha = 0.05, runs = 1000, type=c("MI", "TR")) {
+conf_series <- function(x, y, data_list, alpha = 0.05, runs = 1000, bins = 10, type=c("MI", "TR")) {
 
   MC_series <- vector("double", nrow(data_list))
 
@@ -66,9 +66,9 @@ conf_series <- function(x, y, data_list, alpha = 0.05, runs = 1000, type=c("MI",
     y_var <- eval(substitute(y), current_df)
 
     if (type == "MI") {
-      MC_mean <- mi_confidence(x_var, y_var, alpha, runs)
+      MC_mean <- mi_confidence(x_var, y_var, alpha, runs, bins)
     } else if (type == "TR") {
-      MC_mean <- tr_confidence(x_var, y_var, alpha, runs)
+      MC_mean <- tr_confidence(x_var, y_var, alpha, runs, bins)
     } else {
       return("Warning: not a valid test")
     }
@@ -86,7 +86,7 @@ lag_confidence <- function(x, y, lags, type = c("MI", "TR"), alpha,
   if (type == "MI") {
     for (i in 1:(lags + 1)) {
       x_lag <- dplyr::lag(x, n = i-1) # include syncronhous interactions
-      MC_lagseries[[i]] <- mi_confidence(xlag, y, runs = runs, bins = bins, normalize = normalize)
+      MC_lagseries[[i]] <- mi_confidence(xlag, y, alpha, runs, bins, normalize)
     }
   } else if (type == "TR") {
     for (i in 1:(lags)) {

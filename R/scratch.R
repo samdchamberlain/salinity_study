@@ -10,27 +10,23 @@ anom_data <- peat6_all %>%
 anom_data <- arrange(anom_data, datetime)
 anom_data$CH4na_anom <- ifelse(is.na(anom_data$wm), NA, anom_data$CH4_anom) # re-insert missing values
 
-#create data list by annual growing season
-by_year <- anom_data %>%
-  filter(DOY > 100 & DOY < 300 & year == 2012)
-
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
 # for GPP -> CH4
 tr_wm_gpp <- transfer_entropy(by_year$GPP_anom, by_year$CH4na_anom, xlag = 1)
 
-bin_tests <- rep(seq(10, 100, by = 10), each = 3)
-high_bins <- rep(c(500, 1000), each = 10)
-bin_tests <- c(bin_tests, high_bins)
-output <- rep(NA, length(bin_tests))
+run_tests <- rep(seq(10, 100, by = 10), each = 5)
+high_runs <- rep(c(500, 1000), each = 5)
+run_tests <- c(run_tests, high_runs)
+output <- rep(NA, length(run_tests))
 
-for (i in 1:length(bin_tests)) {
+for (i in 1:length(run_tests)) {
   output[i] <- tr_confidence(by_year$GPP_anom, by_year$CH4na_anom, xlag = 1, alpha = 0.05,
-                             bins = 10, runs = bin_tests[i])
+                             bins = 10, runs = run_tests[i])
 }
 
-output_set <- data.frame(output, bin_tests)
+output_set <- data.frame(output, run_tests)
 
-ggplot(output_set, aes(x = bin_tests, y = output)) +
+ggplot(output_set, aes(x = run_tests, y = output)) +
   geom_point() +
   stat_smooth(se = FALSE)
 
