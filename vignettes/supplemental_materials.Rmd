@@ -1,12 +1,13 @@
 ---
-title: 'Supplemental Materials: Dynamic ecosystem function during wetland salinization: differential effects on methane biogeochemistry and ecosystem productivity.'
+title: 'Supplemental Materials: Dynamic ecosystem function during wetland salinization:
+  differential effects on methane biogeochemistry and ecosystem productivity.'
 author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J Szutu^1^,
   Joseph G Verfaillie^1^, and Dennis D Baldocchi^1^
 date: '`r Sys.Date()`'
 output:
+  word_document: default
   pdf_document: default
   html_document: default
-  word_document: default
 fontsize: 12pt
 header-includes:
 - \usepackage{setspace}
@@ -80,7 +81,7 @@ ggplot(clipped_monthly, aes(x = CH4_obs, y = T_shuf)) +
   xlab("Total methane flux observations")
 ```
 
-```{r fig2, fig.cap="Monthly Kendall's rank correlation coefficient (\\tau; top panel) shared between *GEP* and *F~CH4~* (green), as well as *Ta* and *F~CH4~* (red) at the wetland that experienced salinization. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
+```{r fig2, fig.cap="Monthly Kendall's rank correlation coefficient ($\\tau$; top panel) shared between *GEP* and *F~CH4~* (green), as well as *Ta* and *F~CH4~* (red) at the wetland that experienced salinization. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
 source("R/MI_functions.R")
 source("R/signficance_tests.R")
 
@@ -174,7 +175,7 @@ iC$widths[2:5] <- as.list(maxWidth); iD$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, iC, iD, ncol=1)
 ```
 
-```{r fig4, fig.cap="Relative transfer entropy (***TE***) from (top panel) *Ta* to *F~CH4~* and (bottom panel) *F~CH4~* to *Ta* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on *a priori* knowledge changes in *Ta* should induce changes in *F~CH4~*, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
+```{r fig4, fig.cap="Relative transfer entropy (*TE*) from (top panel) *Ta* to *F~CH4~* and (bottom panel) *F~CH4~* to *Ta* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on *a priori* knowledge changes in *Ta* should induce changes in *F~CH4~*, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
 
 #apply anomaly filter
 anom_data <- peat6_all %>%
@@ -202,13 +203,13 @@ tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "obse
                            lags = 72, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 100, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "observed", 
                            lags = 72, bins = 10, normalize = T)
 
 mc_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 100, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.ta_df <- tidy_list(tr_ta_wm); wm.ta_shuf <- tidy_list(mc_ta_wm)
@@ -240,7 +241,7 @@ iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, ncol=1)
 ```
 
-```{r fig5, fig.cap="Relative transfer entropy (***TE***) from (top panel) *GEP* to *F~CH4~* and (bottom panel) *F~CH4~* to *GEP* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series.", fig.height=4, fig.width=7.5, dpi=600}
+```{r fig5, fig.cap="Relative transfer entropy (*TE*) from (top panel) *GEP* to *F~CH4~* and (bottom panel) *F~CH4~* to *GEP* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series.", fig.height=4, fig.width=7.5, dpi=600}
 
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
 # for TA -> CH4
@@ -248,13 +249,13 @@ tr_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "ob
                            lags = 72, bins = 10, normalize = T)
 
 mc_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 100, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "observed", 
                            lags = 72, bins = 10, normalize = T)
 
 mc_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 100, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.gep_df <- tidy_list(tr_gep_wm); wm.gep_shuf <- tidy_list(mc_gep_wm)
