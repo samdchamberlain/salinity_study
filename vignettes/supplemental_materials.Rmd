@@ -5,9 +5,9 @@ author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J S
   Joseph G Verfaillie^1^, and Dennis D Baldocchi^1^
 date: '`r Sys.Date()`'
 output:
-  word_document: default
   pdf_document: default
   html_document: default
+  word_document: default
 fontsize: 12pt
 header-includes:
 - \usepackage{setspace}
@@ -149,15 +149,18 @@ a <- ggplot(both_sites, aes(x=date, y=mgCH4, color=site)) +
 b <- ggplot(both_sites, aes(x=date, y=gGEP, color=site)) +
   geom_line(size = 0.5) +
   scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  ylab(expression("GEP "~"("~g~C~m^{-2}~d^{-1}~")")) +
   time_series + theme(legend.position = "none")
 
 c <- ggplot(both_sites, aes(x=date, y=gCO2, color=site)) +
   geom_line(size = 0.5) +
+  ylab(expression("NEE "~"("~g~C~m^{-2}~d^{-1}~")")) +
   scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
   time_series + theme(legend.position = "none")
 
 d <- ggplot(both_sites, aes(x=date, y=Sal, color=site)) +
   geom_line() + 
+  ylab("Salinity (psu)") +
   scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
   time_series + theme(legend.position = "none")
 
