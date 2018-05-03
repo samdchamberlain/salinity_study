@@ -10,12 +10,14 @@ anom_data <- peat6_all %>%
 anom_data <- arrange(anom_data, datetime)
 anom_data$CH4na_anom <- ifelse(is.na(anom_data$wm), NA, anom_data$CH4_anom) # re-insert missing values
 
+by_year <- subset(anom_data, year == 2012 & DOY > 100 & DOY < 300)
+
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
 # for GPP -> CH4
 tr_wm_gpp <- transfer_entropy(by_year$GPP_anom, by_year$CH4na_anom, xlag = 1)
 
-run_tests <- rep(seq(10, 100, by = 10), each = 5)
-high_runs <- rep(c(500, 1000), each = 5)
+run_tests <- rep(seq(10, 100, by = 10), each = 10)
+high_runs <- rep(c(250, 500, 1000), each = 10)
 run_tests <- c(run_tests, high_runs)
 output <- rep(NA, length(run_tests))
 
@@ -28,6 +30,7 @@ output_set <- data.frame(output, run_tests)
 
 ggplot(output_set, aes(x = run_tests, y = output)) +
   geom_point() +
+  xlab("Num. of runs") + ylab("TE limit") +
   stat_smooth(se = FALSE)
 
 sig_limits <- rep(seq(0.01, .1, by = 0.01), each = 10)
