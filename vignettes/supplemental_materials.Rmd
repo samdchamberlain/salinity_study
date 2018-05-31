@@ -81,7 +81,57 @@ ggplot(clipped_monthly, aes(x = CH4_obs, y = T_shuf)) +
   xlab("Total methane flux observations")
 ```
 
-```{r fig2, fig.cap="Monthly Kendall's rank correlation coefficient ($\\tau$; top panel) shared between *GEP* and *F~CH4~* (green), as well as *Ta* and *F~CH4~* (red) at the wetland that experienced salinization. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
+```{r fig2, fig.cap = "Monthly cumulative fluxes of methane (*F~CH4~*), gross ecosystem photosynthesis (*GEP*), ecosystem respiration (*ER*), as well as mean salinity at the salinizaiton wetland. The wetland was one year old and fully vegetated by 2012.", fig.width=3, fig.height=7, dpi=600}
+time_series <- theme_bw() +
+  theme(panel.grid.minor=element_blank(), panel.grid.major.y = element_blank(),
+        axis.title.x = element_blank(), axis.title.y = element_text(size=10))
+
+vegetated_monthly <- subset(peat6_monthly, year > 2011)
+vegetated_monthly$Year <- as.factor(vegetated_monthly$year)
+
+a <- ggplot(vegetated_monthly, aes(x=month, y=gCH4, color=Year)) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(2, 12, by=2)) +
+  ylab(expression(F[CH4]~" "~"("~g~C~m^{-2}~mn^{-1}~")")) +
+  time_series + theme(legend.position = "none")
+
+b <- ggplot(vegetated_monthly, aes(x=month, y=gGEP, color=Year)) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(2, 12, by=2)) +
+  ylab(expression("GEP "~"("~g~C~m^{-2}~mn^{-1}~")")) +
+  time_series + theme(legend.position = "none")
+
+c <- ggplot(vegetated_monthly, aes(x=month, y=gER, color=Year)) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(2, 12, by=2)) +
+  ylab(expression("ER "~"("~g~C~m^{-2}~mn^{-1}~")")) +
+  time_series +
+  theme(legend.margin = margin(0, 0, 0, 0),
+        legend.position=c(.14, .62), legend.key.size =  unit(0.14, "in"),
+        legend.text = element_text(size=8), legend.title = element_text(size=9, face = "bold")) 
+
+d <- ggplot(vegetated_monthly, aes(x=month, y=mSal, color=Year)) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(2, 12, by=2)) +
+  ylab("Salinty (psu)") + xlab("Month") +
+  theme_bw() +
+  theme(panel.grid.minor=element_blank(), panel.grid.major.y = element_blank(),
+        axis.title.y = element_text(size=10), legend.position = "none")
+
+#Multiple plots aligned
+iA <- ggplotGrob(a)
+iB <- ggplotGrob(b)
+iC <- ggplotGrob(c)
+iD <- ggplotGrob(d)
+
+maxWidth = grid::unit.pmax(iA$widths[2:5], iB$widths[2:5], iC$widths[2:5], iD$widths[2:5])
+iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth); 
+iC$widths[2:5] <- as.list(maxWidth); iD$widths[2:5] <- as.list(maxWidth);
+
+grid.arrange(iA, iB, iC, iD, ncol=1)
+```
+
+```{r fig3, fig.cap="Monthly Kendall's rank correlation coefficient ($\\tau$; top panel) shared between *GEP* and *F~CH4~* (green), as well as *Ta* and *F~CH4~* (red) at the wetland that experienced salinization. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
 source("R/MI_functions.R")
 source("R/signficance_tests.R")
 
@@ -128,7 +178,7 @@ iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, ncol=1)
 ```
 
-```{r fig3, fig.cap="Time series of daily methane fluxes (*F~CH4~*), gross ecosystem photosynthesis (*GEP*), net ecosystem exchange (*NEE*), and salinity at the reference wetland and the wetland that experienced salinization.", fig.height = 5, fig.width = 7, dpi=600}
+```{r fig4, fig.cap="Time series of daily methane fluxes (*F~CH4~*), gross ecosystem photosynthesis (*GEP*), net ecosystem exchange (*NEE*), and salinity at the reference wetland and the wetland that experienced salinization.", fig.height = 5, fig.width = 7, dpi=600}
 time_series <- theme_bw() +
   theme(panel.grid.minor=element_blank(), panel.grid.major.y = element_blank(),
         axis.title.x = element_blank(), axis.title.y = element_text(size=9))
@@ -178,7 +228,7 @@ iC$widths[2:5] <- as.list(maxWidth); iD$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, iC, iD, ncol=1)
 ```
 
-```{r fig4, fig.cap="Relative transfer entropy (*TE*) from (top panel) *Ta* to *F~CH4~* and (bottom panel) *F~CH4~* to *Ta* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on *a priori* knowledge changes in *Ta* should induce changes in *F~CH4~*, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
+```{r fig5, fig.cap="Relative transfer entropy (*TE*) from (top panel) *Ta* to *F~CH4~* and (bottom panel) *F~CH4~* to *Ta* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series. Based on *a priori* knowledge changes in *Ta* should induce changes in *F~CH4~*, but not vice versa.", fig.height=4, fig.width=7.5, dpi=600}
 
 #apply anomaly filter
 anom_data <- peat6_all %>%
@@ -244,7 +294,7 @@ iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth);
 grid.arrange(iA, iB, ncol=1)
 ```
 
-```{r fig5, fig.cap="Relative transfer entropy (*TE*) from (top panel) *GEP* to *F~CH4~* and (bottom panel) *F~CH4~* to *GEP* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series.", fig.height=4, fig.width=7.5, dpi=600}
+```{r fig6, fig.cap="Relative transfer entropy (*TE*) from (top panel) *GEP* to *F~CH4~* and (bottom panel) *F~CH4~* to *GEP* over multiple growing seasons (DOY 100-300). The red line represents significance threshold (*P* < 0.05) based on Monte Carlo reshuffling of the time series.", fig.height=4, fig.width=7.5, dpi=600}
 
 #calculate lagged transfer entropy time series (up to 2 day lag at half-hourly timestep)
 # for TA -> CH4
