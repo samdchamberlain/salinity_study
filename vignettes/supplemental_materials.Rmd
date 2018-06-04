@@ -1,13 +1,13 @@
 ---
-title: 'Supplemental Materials: Dynamic ecosystem function during wetland salinization:
-  differential effects on methane biogeochemistry and ecosystem productivity.'
+title: Effect of drought-induced salinization on wetland methane emissions, gross
+  ecosystem photosynthesis, and their interactions.
 author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J Szutu^1^,
   Joseph G Verfaillie^1^, and Dennis D Baldocchi^1^
 date: '`r Sys.Date()`'
 output:
+  word_document: default
   pdf_document: default
   html_document: default
-  word_document: default
 fontsize: 12pt
 header-includes:
 - \usepackage{setspace}
@@ -256,13 +256,13 @@ tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "obse
                            lags = 72, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 100, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 10, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "observed", 
                            lags = 72, bins = 10, normalize = T)
 
 mc_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 100, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 10, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.ta_df <- tidy_list(tr_ta_wm); wm.ta_shuf <- tidy_list(mc_ta_wm)
@@ -302,13 +302,13 @@ tr_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "ob
                            lags = 72, bins = 10, normalize = T)
 
 mc_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 100, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 10, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "observed", 
                            lags = 72, bins = 10, normalize = T)
 
 mc_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "shuffled", 
-                           lags = 72, bins = 10, runs = 100, alpha = 0.05, normalize = T)
+                           lags = 72, bins = 10, runs = 10, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.gep_df <- tidy_list(tr_gep_wm); wm.gep_shuf <- tidy_list(mc_gep_wm)
