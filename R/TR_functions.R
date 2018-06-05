@@ -73,7 +73,7 @@ tr_timeseries <- function(x, y, data_list, lags, runs, bins = 10, alpha = 0.05, 
     } else if (type == "shuffled") {
       output_list[[name]] <- lag_confidence(x_var, y_var, lags, type = "TR", alpha, runs, bins, normalize)
     } else {
-      return("Warning: type not assigned correctly")
+      stop("Warning: type not assigned correctly")
     }
   }
   output_list

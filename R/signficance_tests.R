@@ -16,7 +16,7 @@ mi_confidence <- function(x, y, alpha = 0.05, runs = 100, bins = 10, normalize =
   if (alpha > 0 && alpha < 1) {
     limit <- quantile(mc_out, probs = (1 - alpha))[[1]]
   } else {
-    return("Error: sig. limit out of range (0 - 1).")
+    stop("Error: sig. limit out of range (0 - 1).")
   }
 
   # if (alpha == 0.01) {
@@ -42,7 +42,7 @@ tr_confidence <- function(x, y, xlag, ylag = 1, alpha = 0.05, runs = 25, bins = 
   if (alpha > 0 && alpha < 1) {
     limit <- quantile(mc_out, probs = (1 - alpha))[[1]]
   } else {
-    return("Error: sig. limit out of range (0 - 1).")
+    stop("Error: sig. limit out of range (0 - 1).")
   }
   # if (alpha == 0.01) {
   #   limit <- mean(mc_out) + 2.49*sd(mc_out)
@@ -70,7 +70,7 @@ conf_series <- function(x, y, data_list, alpha = 0.05, runs = 1000, bins = 10, t
     } else if (type == "TR") {
       MC_mean <- tr_confidence(x_var, y_var, alpha, runs, bins)
     } else {
-      return("Warning: not a valid test")
+      stop("Warning: not a valid test")
     }
 
     MC_series[[i]] <- MC_mean
@@ -93,7 +93,7 @@ lag_confidence <- function(x, y, lags, type = c("MI", "TR"), alpha,
       MC_lagseries[[i]] <- tr_confidence(x, y, xlag = i, ylag = 1, alpha, runs, bins, normalize)
     }
   } else {
-    return("Warning: not a valid test")
+    stop("Warning: not a valid test")
   }
   MC_lagseries
 }
