@@ -1,5 +1,5 @@
 Package: salinity
-Title: Reproduced manuscript evaluating salinity impacts to Sacramento-San Joaquin Delta restored wetlands
+Title: Reproducible manuscript evaluating salinity impacts to Sacramento-San Joaquin Delta restored wetlands
 Version: 0.0.0.9000
 Authors@R: person("Sam", "Chamberlain", email = "schamberlain@berkeley.edu", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
