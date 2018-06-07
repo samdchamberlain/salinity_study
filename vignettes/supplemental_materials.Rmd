@@ -40,7 +40,6 @@ library(scales)
 library(zoo)
 library(ggpubr)
 library(entropy)
-library(wq)
 library(forecast)
 library(stringr)
 source('R/TR_functions.R'); source('R/MI_functions.R'); 

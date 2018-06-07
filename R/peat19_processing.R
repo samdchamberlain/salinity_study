@@ -5,12 +5,14 @@
 #' @import dplyr
 #' @importFrom lubridate month
 #' @importFrom dplyr "%>%"
-#' @importFrom wq ec2pss
+
+# load ec2pss function
+source("R/transformations.R")
 
 # load eddy flux and met dataset
 load("data/peat19_all.Rdata")
 peat19_all$dday <- floor(peat19_all$decday)
-peat19_all$site <- "Baseline (mature)"
+peat19_all$site <- "Reference Wetland"
 peat19_all$sal <- ec2pss(peat19_all$conductivity, peat19_all$TW_8cm)
 
 #Simple average of daily fluxes for gapfilled values

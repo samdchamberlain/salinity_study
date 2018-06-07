@@ -46,7 +46,6 @@ library(caret)
 library(forecast)
 library(entropy)
 library(stringr)
-library(wq)
 
 # mutual info and transfer entropy functions
 source("R/MI_functions.R")

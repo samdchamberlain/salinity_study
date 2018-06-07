@@ -19,5 +19,4 @@ Imports: dplyr,
     entropy,
     purrr,
     stringr,
-    tidyr,
-    wq
+    tidyr
