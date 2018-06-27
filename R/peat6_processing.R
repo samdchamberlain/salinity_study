@@ -79,7 +79,7 @@ monthly <- daily %>%
             days = sum(!is.na(mgCH4)),
             CH4_obs = sum(m_obs),
             total_obs = sum(t_obs)) %>%
-  filter(days > 27)  %>% # only complete months
+  #filter(days > 27)  %>% # only complete months (fix when new data arrives)
   mutate(frac_CH4obs = CH4_obs/total_obs)
 
 # convert to monthly sums

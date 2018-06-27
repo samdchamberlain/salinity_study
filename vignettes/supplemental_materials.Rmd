@@ -1,7 +1,7 @@
 ---
 title: Effect of drought-induced salinization on wetland methane emissions, gross
   ecosystem photosynthesis, and their interactions.
-author: Samuel D Chamberlain^1^, Elke Eichelmann^1^, Kyle S Hemes^1^, Daphne J Szutu^1^,
+author: Samuel D Chamberlain^1^, Kyle S Hemes^1^, Elke Eichelmann^1^, Daphne J Szutu^1^,
   Joseph G Verfaillie^1^, and Dennis D Baldocchi^1^
 date: '`r Sys.Date()`'
 output:
