@@ -88,7 +88,7 @@ And joint entropies are calculated from the joint probability distributions of t
 $$H_{X,Y}=-\sum_{x_t}\sum_{y_t}p(x_t,y_t)log_2p(x_t,y_t)$$
 where *x~t~* and *y~t~* are states within the overall distribution of *X* and *Y*.
 
-We calculated mutual information (*MI*) for one-month blocks across the entire flux time series to quantify the change in couplings across the salinity disturbance event. For each month, continuous variables were discretized to 10 bins of equivalent length across each variables range. Mutual information was calculated for each variable pair of interest (*Ta*,*F~CH4~* and *GEP*,*F~CH4~*), and significance thresholds were computed from the 95^th^ percentile (*P* < 0.05) of 1000 Monte Carlo reshufflings of the independent variable (*Ta* or *GEP*). Because the reshuffled values (*MI'*) vary with the number of CH~4~ flux observations per month (figure S1) we present *MI-MI'*, similar to @larsen_disrupted_2017, such that any values in Figs. 1 and 2 greater than zero are significant couplings.
+We calculated mutual information (*MI*) for one-month blocks across the entire flux time series to quantify the change in couplings across the salinity disturbance event. For each month, we calculated probability distributions by discretizing continuous data into 10 bins of equivalent length across each variables range. Mutual information was calculated for each variable pair of interest (*Ta*,*F~CH4~* and *GEP*,*F~CH4~*), and significance thresholds were computed from the 95^th^ percentile (*P* < 0.05) of 100 Monte Carlo reshufflings of the independent variable (*Ta* or *GEP*). Because the reshuffled values (*MI'*) vary with the number of CH~4~ flux observations per month (figure S1) we present *MI-MI'*, similar to @larsen_disrupted_2017, such that any values in Figs. 1 and 2 greater than zero are significant couplings.
 
 Transfer entropy quantifies directional information transfer, or the extent to which knowledge of a variables *X* reduced the uncertainty of the present state of *Y* given knowledge of the history of *Y*. If a value of *TE* is above some significance threshold, it is deduced that information flows from *X* to the current state of *Y* [@ruddell_ecohydrologic_2009]. Transfer entropy can also be described by joint and marginal entropies incorporating time lags as follows [@knuth_revealing_2013; @ruddell_ecohydrologic_2009]:
 $$T(X>Y, \tau) = H(X_{t-\tau}, Y_{t-1}) + H(Y_{t}, Y_{t-1}) - H(Y_{t-1}) - H(X_{t-\tau}, Y_{t}, Y_{t-1})$$
@@ -132,9 +132,9 @@ clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month, bin
 
 # Monte Carlo significance thresholds (dont run everytime as they take a while)
 sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, type = "MI",
-                       runs = 10, alpha = 0.05, bins = 10)
+                       runs = 1000, alpha = 0.05, bins = 10)
 sig_Tair <- conf_series(TA.x, wm, data_list = by_month, type = "MI",
-                        runs = 10, alpha = 0.05, bins = 10)
+                        runs = 1000, alpha = 0.05, bins = 10)
 
 # Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.05
 clipped_monthly$TairMI_corrected <- clipped_monthly$Tair_CH4_mi - sig_Tair
@@ -189,9 +189,9 @@ clipped_monthly$Tair_CH4_mi <- mi_timeseries(TA.x, wm, data_list = by_month, bin
 
 # Monte Carlo significance thresholds (dont run everytime as they take a while)
 sig_gpp <- conf_series(gpp_ANNnight, wm, data_list = by_month, type = "MI", 
-                       runs = 10, alpha = 0.05, bins = 10)
+                       runs = 1000, alpha = 0.05, bins = 10)
 sig_Tair <- conf_series(TA.x, wm, data_list = by_month, type = "MI",
-                        runs = 10, alpha = 0.05, bins = 10)
+                        runs = 1000, alpha = 0.05, bins = 10)
 
 # Correct MI values of bias due to sample size, now anything over zero is significant at p < 0.05
 clipped_monthly$TairMI_corrected <- clipped_monthly$Tair_CH4_mi - sig_Tair
@@ -256,13 +256,13 @@ tr_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "ob
                            lags = 120, bins = 10, normalize = T)
 
 mc_wm_gpp <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled",
-                           lags = 120, bins = 10, runs = 2, alpha = 0.05, normalize = T)
+                           lags = 120, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
 # for TA -> CH4
 tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "observed",
                            lags = 120, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled",
-                           lags = 120, bins = 10, runs = 2, alpha = 0.05, normalize = T)
+                           lags = 120, bins = 10, runs = 1000, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 gpp.wm_df <- tidy_list(tr_wm_gpp); gpp.wm_shuf <- tidy_list(mc_wm_gpp)
@@ -380,7 +380,7 @@ Our study suggests that episodic salinization affecting freshwater restored wetl
 
 Despite small changes in CH~4~ flux magnitudes, we observed strong changes in couplings (figure 1) and information transfer (figure 3) between driving processes and CH~4~ fluxes during salinization. During high salinity, couplings and information transfer from *Ta* to *F~CH4~* strengthened, while coupling and information transfer from *GEP* to *F~CH4~* declined (figures 1 and 3, respectively). Similar dynamics were not observed at the reference wetland, where *GEP*,*F~CH4~* couplings were dominant to *Ta*,*F~CH4~* across all years (figure 2). These observations, taken with our findings of small reductions in daily to annual *F~CH4~* (figure 4), suggest that either (1) microbial utilization of other wetland C substrates, such as soil organic C, compensated for reduced availability of recent photosynthates, or (2) recent photosynthates were never dominant driver of CH~4~ emissions within these wetlands. Such CH~4~ flux temperature dependence is consistent with findings across a number of ecosystems and observation scales [@yvon-durocher_methane_2014]. These conclusion stands in contrast to previous eddy covariance studies from rice within the region, where *GEP* was the dominant driver of CH~4~ fluxes compared to temperature [@hatala_gross_2012; @knox_biophysical_2016]. The contrast between our findings and rice suggests that dominant biogeochemical processes may vary across ecosystem types, and caution should be taken in extrapolating a mechanistic understanding from one system to another. In a similar vein, our previous work has demonstrated highly divergent ecosystem CH~4~ flux controls [@chamberlain_soil_2018] and *GEP*, CH~4~ flux scaling relationships [@hemes_compromise_2018] driven by spatially variable soil properties across these restored wetlands. Similarly, we observed CH~4~ flux-driver relationships conditional on environmental conditions, where *GEP* couplings reduced as the wetland transitioned from oligohaline to high salinity, mesohaline conditions (figure 1).
 
-This study also highlights the utility of applying information theory and machine learning approaches to understanding ecological responses *in situ*. Information theory metrics are particularly suited to resolve connectivity and causation in complex systems due to their lack of parametric assumptions and ability to resolve scale-emergent interactions [@sturtevant_identifying_2016; @larsen_disrupted_2017; @chamberlain_soil_2018; @knox_direct_2018; @rinderer_assessing_2018]. Similarly, machine learning approaches, such as random forests applied here and ANNs used elsewhere, have increasingly been applied to quantify dominant ecosystem greenhouse gas exchange controls where non-linear, complex responses are expected [@knox_biophysical_2016; @albert_climate_2017; @stocker_quantifying_2018]. All of the above approaches are generally data intensive [@ruddell_ecohydrologic_2009; @getz_wayne_m_making_2017], though large observational datasets are becoming publicly available through data sharing communities, such as FluxNet [@baldocchi_fluxnet_2001; @hampton_big_2013]. These tools provide a strong foundation for assessing connectivity and functional relationships in natural ecosystems, where ecosystem-scale experiments may be impractical or impossible. Instead, a combination of observational networks, natural experiments, and statistical approaches can be used to understand ecosystem-scale responses to environmental change.
+This study also highlights the utility of applying information theory and machine learning approaches to understanding ecological responses *in situ*. Information theory metrics are particularly suited to resolve connectivity and causation in complex systems due to their lack of parametric assumptions and ability to resolve scale-emergent interactions [@sturtevant_identifying_2016; @larsen_disrupted_2017; @chamberlain_soil_2018; @knox_direct_2018; @rinderer_assessing_2018]. Similarly, machine learning approaches, such as random forests applied here and ANNs used elsewhere, have increasingly been applied to quantify dominant ecosystem greenhouse gas exchange controls where non-linear, complex responses are expected [@knox_biophysical_2016; @albert_climate_2017; @stocker_quantifying_2018]. All of the above approaches are generally data intensive [@ruddell_ecohydrologic_2009; @getz_wayne_m_making_2017], though large observational datasets are becoming publicly available through data sharing communities [@hampton_big_2013], such as FluxNet [@chu_fluxes_2017]. These tools provide a strong foundation for assessing connectivity and functional relationships in natural ecosystems, where ecosystem-scale experiments may be impractical or impossible. Instead, a combination of observational networks, natural experiments, and statistical approaches can be used to understand ecosystem-scale responses to environmental change.
 
 It is important to note that these techniques are no substitute of an ecological understanding of one's system, as spurious transfer entropy has been documented across multiple studies [@rinderer_assessing_2018], often related to multivariate interactions masked in the bivariate statistic [@runge_escaping_2012]. For example, we observed no information transfer from *F~CH4~* to *Ta* (figure S5), as expected, but did observe some spurious information transfer from *F~CH4~* to *GEP* (figure S6). This is likely due to the presence of a shared driver, such as soil temperature, or unobserved processes that covary with CH~4~ production, like decomposition-driven soil priming. Multivariate approaches have been proposed to identify spurious links through conditional mutual information [@runge_escaping_2012; @runge_identifying_2015], and these techniques are likely better suited to systems where *a priori* knowledge is limited.
 
