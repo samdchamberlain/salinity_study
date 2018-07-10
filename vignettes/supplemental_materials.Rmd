@@ -255,13 +255,13 @@ tr_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "obse
                            lags = 120, bins = 10, normalize = T)
 
 mc_wm_ta <- tr_timeseries(TA_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 10, alpha = 0.05, normalize = T)
+                           lags = 120, bins = 10, runs = 100, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "observed", 
                            lags = 120, bins = 10, normalize = T)
 
 mc_ta_wm <- tr_timeseries(CH4na_anom, TA_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 10, alpha = 0.05, normalize = T)
+                           lags = 120, bins = 10, runs = 100, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.ta_df <- tidy_list(tr_ta_wm); wm.ta_shuf <- tidy_list(mc_ta_wm)
@@ -301,13 +301,13 @@ tr_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "ob
                            lags = 120, bins = 10, normalize = T)
 
 mc_wm_gep <- tr_timeseries(GPP_anom, CH4na_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 10, alpha = 0.05, normalize = T)
+                           lags = 120, bins = 10, runs = 100, alpha = 0.05, normalize = T)
 # for CH4 -> TA
 tr_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "observed", 
                            lags = 120, bins = 10, normalize = T)
 
 mc_gep_wm <- tr_timeseries(CH4na_anom, GPP_anom, data_list = by_year, type = "shuffled", 
-                           lags = 120, bins = 10, runs = 10, alpha = 0.05, normalize = T)
+                           lags = 120, bins = 10, runs = 100, alpha = 0.05, normalize = T)
 
 #unlist data to tidy dataframe
 wm.gep_df <- tidy_list(tr_gep_wm); wm.gep_shuf <- tidy_list(mc_gep_wm)
