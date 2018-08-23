@@ -15,6 +15,9 @@ peat6_all$dday <- floor(peat6_all$decday)
 peat6_all$sal <- ec2pss(peat6_all$Cond, peat6_all$TW_TULE_10cm)
 peat6_all$site <- 'Salinization Wetland'
 
+#only include complete months (through May 2018)
+peat6_all <- subset(peat6_all, dday < 3074)
+
 #Simple average of daily fluxes for gapfilled values
 daily <- peat6_all %>%
   group_by(dday, site) %>%
@@ -79,7 +82,7 @@ monthly <- daily %>%
             days = sum(!is.na(mgCH4)),
             CH4_obs = sum(m_obs),
             total_obs = sum(t_obs)) %>%
-  #filter(days > 27)  %>% # only complete months (fix when new data arrives)
+  filter(days > 27)  %>% # only complete months
   mutate(frac_CH4obs = CH4_obs/total_obs)
 
 # convert to monthly sums

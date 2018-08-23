@@ -86,7 +86,7 @@ lag_confidence <- function(x, y, lags, type = c("MI", "TR"), alpha,
   if (type == "MI") {
     for (i in 1:(lags + 1)) {
       x_lag <- dplyr::lag(x, n = i-1) # include syncronhous interactions
-      MC_lagseries[[i]] <- mi_confidence(xlag, y, alpha, runs, bins, normalize)
+      MC_lagseries[[i]] <- mi_confidence(x_lag, y, alpha, runs, bins, normalize)
     }
   } else if (type == "TR") {
     for (i in 1:(lags)) {
