@@ -55,7 +55,7 @@ mi_timeseries <- function(x, y, data_list, bins = 10, normalize = TRUE) {
 }
 
 #calculate correlation coefficients for comparison
-corr_timeseries <- function(x, y, data_list) {
+corr_timeseries <- function(x, y, data_list, method = 'kendall') {
 
   corr_series <- vector("double", nrow(data_list)) #vector to store correlation coefficients
 
@@ -65,7 +65,7 @@ corr_timeseries <- function(x, y, data_list) {
     x_var <- eval(substitute(x), current_df)
     y_var <- eval(substitute(y), current_df)
 
-    out <- cor.test(x_var, y_var, method = "kendall")
+    out <- cor.test(x_var, y_var, method = method)
     corr_series[[i]] <- out$estimate[[1]]
   }
   corr_series

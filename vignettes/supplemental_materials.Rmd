@@ -80,7 +80,7 @@ ggplot(clipped_monthly, aes(x = CH4_obs, y = T_shuf)) +
   xlab("Total methane flux observations")
 ```
 
-```{r fig2, fig.cap="Monthly Kendall's rank correlation coefficient ($\\tau$; top panel) shared between *GEP* and *F~CH4~* (green), as well as *Ta* and *F~CH4~* (red) at the salinization wetland. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
+```{r fig2, fig.cap="Monthly Pearson's correlation (PCC; top panel), Kendall's rank correlation coefficient ($\\tau$; middle panel) shared between *GEP* and *F~CH4~* (green), as well as *Ta* and *F~CH4~* (red) at the salinization wetland. The lines represent 3 month running means. Bottom panel displays daily mean water column salinity (psu).", fig.width=7, fig.height=5, dpi=600}
 source("R/MI_functions.R")
 source("R/signficance_tests.R")
 
@@ -95,19 +95,35 @@ by_month <- peat6_all %>%
 #plot that needs to be dealt with later
 clipped_monthly <- subset(peat6_monthly, year > 2011 & year < 2018)
 clipped_monthly$date <- as.Date(clipped_monthly$datetime)
-clipped_monthly$GPP_CH4_mi <- corr_timeseries(gpp_ANNnight*-1, wm, data_list = by_month)
-clipped_monthly$Tair_CH4_mi <- corr_timeseries(TA.x, wm, data_list = by_month)
+clipped_monthly$GPP_CH4_pear <- corr_timeseries(gpp_ANNnight*-1, wm, data_list = by_month, 
+                                              method = 'pearson')
+clipped_monthly$Tair_CH4_pear <- corr_timeseries(TA.x, wm, data_list = by_month, 
+                                               method = 'pearson')
+
+clipped_monthly$GPP_CH4_kendall <- corr_timeseries(gpp_ANNnight*-1, wm, data_list = by_month, 
+                                              method = 'kendall')
+clipped_monthly$Tair_CH4_kendall <- corr_timeseries(TA.x, wm, data_list = by_month, 
+                                               method = 'kendall')
 
 a <- ggplot(clipped_monthly) +
-  geom_point(aes(x = date, y = Tair_CH4_mi), color = "red", alpha = 0.5) +
-  geom_line(aes(x = date, y = ma(Tair_CH4_mi, 3)), color = "red", size = 1) +
-  geom_point(aes(x = date, y = GPP_CH4_mi), color = "dark green", alpha = 0.5) +
-  geom_line(aes(x = date, y = ma(GPP_CH4_mi, 3)), color = "dark green", size = 1) +  
+  geom_point(aes(x = date, y = Tair_CH4_pear), color = "red", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(Tair_CH4_pear, 3)), color = "red", size = 1) +
+  geom_point(aes(x = date, y = GPP_CH4_pear), color = "dark green", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(GPP_CH4_pear, 3)), color = "dark green", size = 1) +  
   scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
-  ylab(expression(tau~"(x,"~F[CH4]~")")) + xlab("") + ggtitle("Salinization wetland") +
+  ylab(expression("PCC (x,"~F[CH4]~")")) + xlab("") + ggtitle("Salinization wetland") +
   theme_bw()
 
-b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=as.Date(datetime), y=Sal)) +
+b <- ggplot(clipped_monthly) +
+  geom_point(aes(x = date, y = Tair_CH4_kendall), color = "red", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(Tair_CH4_kendall, 3)), color = "red", size = 1) +
+  geom_point(aes(x = date, y = GPP_CH4_kendall), color = "dark green", alpha = 0.5) +
+  geom_line(aes(x = date, y = ma(GPP_CH4_kendall, 3)), color = "dark green", size = 1) +  
+  scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
+  ylab(expression(tau~"(x,"~F[CH4]~")")) + xlab("") +
+  theme_bw()
+
+c <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=as.Date(datetime), y=Sal)) +
   geom_line(color = "blue") +
   scale_y_continuous(limits = c(0, 7)) +
   scale_x_date(date_breaks = "1 year", labels = date_format("%Y")) +
@@ -117,11 +133,13 @@ b <- ggplot(subset(peat6_daily, year > 2011 & year < 2018), aes(x=as.Date(dateti
 #Multiple plots aligned
 iA <- ggplotGrob(a)
 iB <- ggplotGrob(b)
+iC <- ggplotGrob(c)
 
-maxWidth = grid::unit.pmax(iA$widths[2:5], iB$widths[2:5])
+maxWidth = grid::unit.pmax(iA$widths[2:5], iB$widths[2:5], iC$widths[2:5])
 iA$widths[2:5] <- as.list(maxWidth); iB$widths[2:5] <- as.list(maxWidth); 
+iC$widths[2:5] <- as.list(maxWidth); 
 
-grid.arrange(iA, iB, ncol=1)
+grid.arrange(iA, iB, iC, ncol=1)
 ```
 
 ```{r fig3, fig.cap="Time series of daily methane fluxes (*F~CH4~*), gross ecosystem photosynthesis (*GEP*), net ecosystem exchange (*NEE*), and salinity at the reference wetland and the salinization wetland.", fig.height = 5, fig.width = 7, dpi=600}
